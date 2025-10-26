@@ -22,7 +22,7 @@ TORCH_MODULE_TYPE_STR = 'torch.nn.modules.module.Module'
 AlgorithmicSelector = Union[str, Sequence[str], Callable]
 
 SUPPORTED_ALGORITHMS = {
-    'conv2d': ['direct', 'smm', 'winograd', 'gemm',
+    'conv2d': ['direct', 'smm', 'winograd', 'winograd nonfused', 'gemm',
                'implicit gemm', 'implicit precomp gemm',
                'guess', 'mps', 'metal'],
     'linear': ['gemm'],

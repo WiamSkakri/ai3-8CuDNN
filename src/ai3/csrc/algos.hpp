@@ -21,6 +21,7 @@ namespace conv2d {
 template <typename dtype> Tensor direct(CONV2D_PARAMS);
 template <typename dtype> Tensor smm(CONV2D_PARAMS);
 template <typename dtype> Tensor winograd(CONV2D_PARAMS);
+template <typename dtype> Tensor winograd_nonfused(CONV2D_PARAMS);
 template <typename dtype> Tensor implicit_gemm(CONV2D_PARAMS);
 template <typename dtype> Tensor implicit_precomp_gemm(CONV2D_PARAMS);
 template <typename dtype> Tensor gemm(CONV2D_PARAMS);

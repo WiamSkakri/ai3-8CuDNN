@@ -29,7 +29,7 @@ Tensor conv2d::winograd(Tensor input, const Tensor &kernel,
     return conv_bias_forward_with_algo<dtype>(
         std::move(input), kernel, bias, padding_h, padding_w, stride_h,
         stride_w, dilation_h, dilation_w, padding_mode, groups,
-        CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM);
+        CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD);
 }
 
 template Tensor conv2d::winograd<float>(CONV2D_PARAMS);

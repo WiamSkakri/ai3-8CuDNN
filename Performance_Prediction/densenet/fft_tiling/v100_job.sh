@@ -1,14 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name=vgg16_winograd_h100
-#SBATCH --output=vgg16_winograd_results_h100/vgg16_winograd_h100_%j.out
-#SBATCH --error=vgg16_winograd_results_h100/vgg16_winograd_h100_%j.err
+#SBATCH --job-name=densenet_fft_tiling_v100
+#SBATCH --output=densenet_fft_tiling_results_v100/densenet_fft_tiling_v100_%j.out
+#SBATCH --error=densenet_fft_tiling_results_v100/densenet_fft_tiling_v100_%j.err
 #SBATCH --time=24:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --partition=gpu
-#SBATCH -C gpu2h100
+#SBATCH -C gpu4v100
 #SBATCH --gres=gpu:1
 
 # Job Information
@@ -25,17 +25,9 @@ echo "GPU Information:"
 nvidia-smi
 echo ""
 
-# Load required modules (adjust based on your HPC system)
-# Uncomment and modify as needed for your system
-# module purge
-# module load cuda/12.1
-# module load cudnn/9.0
-# module load python/3.9
-
 # Activate conda/virtual environment
-# Replace with your actual environment name
 echo "Activating ai3_8cudnn environment..."
-source ~/.bashrc  # or ~/.bash_profile
+source ~/.bashrc
 conda activate ai3_8cudnn
 
 # Verify environment
@@ -50,23 +42,23 @@ echo "ai3 cuDNN available:"
 python -c "import ai3; print(ai3.using_cudnn())"
 echo ""
 
-# Navigate to working directory (where the script is located)
+# Navigate to working directory
 cd $SLURM_SUBMIT_DIR
 echo "Working directory: $(pwd)"
 echo "Files in directory:"
-ls -la vgg16_winograd.py 2>/dev/null || echo "  ⚠ WARNING: vgg16_winograd.py not found in current directory!"
+ls -la densenet_fft_tiling.py 2>/dev/null || echo "  ⚠ WARNING: densenet_fft_tiling.py not found in current directory!"
 echo ""
 
 # Verify script exists
-if [ ! -f "vgg16_winograd.py" ]; then
-    echo "✗ ERROR: vgg16_winograd.py not found!"
-    echo "Expected location: $(pwd)/vgg16_winograd.py"
-    echo "Please ensure you submit the job from the directory containing vgg16_winograd.py"
+if [ ! -f "densenet_fft_tiling.py" ]; then
+    echo "✗ ERROR: densenet_fft_tiling.py not found!"
+    echo "Expected location: $(pwd)/densenet_fft_tiling.py"
+    echo "Please ensure you submit the job from the directory containing densenet_fft_tiling.py"
     exit 1
 fi
 
 # Create results directory
-RESULTS_DIR="vgg16_winograd_results_h100"
+RESULTS_DIR="densenet_fft_tiling_results_v100"
 echo "Creating results directory: $RESULTS_DIR"
 mkdir -p $RESULTS_DIR
 echo "✓ Results will be saved to: $(pwd)/$RESULTS_DIR"
@@ -77,12 +69,11 @@ cd $RESULTS_DIR
 
 # Run the profiling script
 echo "=========================================="
-echo "Starting VGG16 Winograd Profiling..."
+echo "Starting DenseNet121 FFT Tiling Profiling..."
 echo "=========================================="
 echo ""
 
-# Run script from parent directory, output will be saved in current (results) directory
-python ../vgg16_winograd.py
+python ../densenet_fft_tiling.py
 
 # Check exit status
 EXIT_CODE=$?
@@ -101,5 +92,4 @@ echo "End Time: $(date)"
 echo "=========================================="
 
 exit $EXIT_CODE
-
 

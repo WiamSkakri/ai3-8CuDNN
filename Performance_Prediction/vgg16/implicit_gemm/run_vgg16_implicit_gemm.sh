@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=vgg16_implicit_gemm_profile
-#SBATCH --output=vgg16_implicit_gemm_results/vgg16_implicit_gemm_%j.out
-#SBATCH --error=vgg16_implicit_gemm_results/vgg16_implicit_gemm_%j.err
+#SBATCH --job-name=vgg16_implicit_gemm_v100
+#SBATCH --output=vgg16_implicit_gemm_results_v100/vgg16_implicit_gemm_v100_%j.out
+#SBATCH --error=vgg16_implicit_gemm_results_v100/vgg16_implicit_gemm_v100_%j.err
 #SBATCH --time=24:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -66,7 +66,7 @@ if [ ! -f "vgg16_implicit_gemm.py" ]; then
 fi
 
 # Create results directory
-RESULTS_DIR="vgg16_implicit_gemm_results"
+RESULTS_DIR="vgg16_implicit_gemm_results_v100"
 echo "Creating results directory: $RESULTS_DIR"
 mkdir -p $RESULTS_DIR
 echo "✓ Results will be saved to: $(pwd)/$RESULTS_DIR"

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-VGG16 Implicit GEMM Performance Profiling with Power Monitoring
+Optimized VGG16 Implicit Precomp GEMM Performance Profiling with ai3
 
 This script provides production-quality performance profiling for VGG16
-using ai3's Implicit GEMM algorithm with proper CUDA timing, statistical analysis,
+using ai3's Implicit Precomp GEMM algorithm with proper CUDA timing, statistical analysis,
 and layer-wise performance breakdown.
 
 Key improvements:
@@ -12,8 +12,6 @@ Key improvements:
 - Memory-efficient data collection
 - Systematic input size sampling
 - Layer-wise profiling with minimal overhead
-- Integrated power monitoring using pynvml
-- Energy consumption calculations (Power × Time)
 """
 
 import torch
@@ -429,12 +427,12 @@ def print_cuda_info():
 def main():
     """Main profiling function"""
     print("=" * 80)
-    print("OPTIMIZED VGG16 IMPLICIT GEMM PERFORMANCE PROFILING")
+    print("OPTIMIZED VGG16 IMPLICIT PRECOMP GEMM PERFORMANCE PROFILING")
     print("=" * 80)
 
     # Configuration
     MODEL_NAME = "VGG16"
-    ALGORITHM = "implicit gemm"
+    ALGORITHM = "implicit precomp gemm"
     BATCH_SIZE = 1
     WARMUP_ITERS = 10
     MEASURE_ITERS = 20

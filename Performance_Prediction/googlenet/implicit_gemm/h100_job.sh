@@ -1,14 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name=vgg16_gemm_v100
-#SBATCH --output=vgg16_gemm_results_v100/vgg16_gemm_v100_%j.out
-#SBATCH --error=vgg16_gemm_results_v100/vgg16_gemm_v100_%j.err
+#SBATCH --job-name=googlenet_implicit_gemm_h100
+#SBATCH --output=googlenet_implicit_gemm_results_h100/googlenet_implicit_gemm_h100_%j.out
+#SBATCH --error=googlenet_implicit_gemm_results_h100/googlenet_implicit_gemm_h100_%j.err
 #SBATCH --time=24:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --partition=gpu
-#SBATCH -C gpu2v100
+#SBATCH -C gpuh100
 #SBATCH --gres=gpu:1
 
 # Job Information
@@ -54,19 +54,19 @@ echo ""
 cd $SLURM_SUBMIT_DIR
 echo "Working directory: $(pwd)"
 echo "Files in directory:"
-ls -la vgg16_gemm.py 2>/dev/null || echo "  ⚠ WARNING: vgg16_gemm.py not found in current directory!"
+ls -la googlenet_implicit_gemm.py 2>/dev/null || echo "  ⚠ WARNING: googlenet_implicit_gemm.py not found in current directory!"
 echo ""
 
 # Verify script exists
-if [ ! -f "vgg16_gemm.py" ]; then
-    echo "✗ ERROR: vgg16_gemm.py not found!"
-    echo "Expected location: $(pwd)/vgg16_gemm.py"
-    echo "Please ensure you submit the job from the directory containing vgg16_gemm.py"
+if [ ! -f "googlenet_implicit_gemm.py" ]; then
+    echo "✗ ERROR: googlenet_implicit_gemm.py not found!"
+    echo "Expected location: $(pwd)/googlenet_implicit_gemm.py"
+    echo "Please ensure you submit the job from the directory containing googlenet_implicit_gemm.py"
     exit 1
 fi
 
 # Create results directory
-RESULTS_DIR="vgg16_gemm_results_v100"
+RESULTS_DIR="googlenet_implicit_gemm_results_h100"
 echo "Creating results directory: $RESULTS_DIR"
 mkdir -p $RESULTS_DIR
 echo "✓ Results will be saved to: $(pwd)/$RESULTS_DIR"
@@ -77,12 +77,12 @@ cd $RESULTS_DIR
 
 # Run the profiling script
 echo "=========================================="
-echo "Starting VGG16 GEMM Profiling..."
+echo "Starting GoogLeNet Implicit GEMM Profiling..."
 echo "=========================================="
 echo ""
 
 # Run script from parent directory, output will be saved in current (results) directory
-python ../vgg16_gemm.py
+python ../googlenet_implicit_gemm.py
 
 # Check exit status
 EXIT_CODE=$?

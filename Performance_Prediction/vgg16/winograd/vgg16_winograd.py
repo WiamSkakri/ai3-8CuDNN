@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-VGG16 Implicit GEMM Performance Profiling with Power Monitoring
+Optimized VGG16 Winograd Performance Profiling with ai3
 
 This script provides production-quality performance profiling for VGG16
-using ai3's Implicit GEMM algorithm with proper CUDA timing, statistical analysis,
+using ai3's Winograd algorithm with proper CUDA timing, statistical analysis,
 and layer-wise performance breakdown.
 
 Key improvements:
@@ -12,8 +12,6 @@ Key improvements:
 - Memory-efficient data collection
 - Systematic input size sampling
 - Layer-wise profiling with minimal overhead
-- Integrated power monitoring using pynvml
-- Energy consumption calculations (Power × Time)
 """
 
 import torch
@@ -429,12 +427,12 @@ def print_cuda_info():
 def main():
     """Main profiling function"""
     print("=" * 80)
-    print("OPTIMIZED VGG16 IMPLICIT GEMM PERFORMANCE PROFILING")
+    print("OPTIMIZED VGG16 WINOGRAD PERFORMANCE PROFILING")
     print("=" * 80)
 
     # Configuration
     MODEL_NAME = "VGG16"
-    ALGORITHM = "implicit gemm"
+    ALGORITHM = "winograd"
     BATCH_SIZE = 1
     WARMUP_ITERS = 10
     MEASURE_ITERS = 20
@@ -652,14 +650,8 @@ def main():
                     percentage = (stats['mean'] / overall_stats['mean']) * 100
                     algo = layer_info.get(layer_name, {}).get(
                         'algorithm', 'unknown')
-                    power_str = ""
-                    if 'power_mean_w' in stats:
-                        power_str = f" | {stats['power_mean_w']:.2f}W"
-                    energy_str = ""
-                    if 'energy_mean_j' in stats:
-                        energy_str = f" | {stats['energy_mean_j']:.4f}J"
                     print(
-                        f"    {layer_name}: {stats['mean']:.2f}ms ± {stats['std']:.2f}ms ({percentage:.1f}%) [{algo}]{power_str}{energy_str}")
+                        f"    {layer_name}: {stats['mean']:.2f}ms ± {stats['std']:.2f}ms ({percentage:.1f}%) [{algo}]")
 
                 # Store all layer results
                 for layer_name, stats in layer_stats.items():
@@ -687,7 +679,6 @@ def main():
                         'percentage': (stats['mean'] / overall_stats['mean']) * 100
                     }
 
-                    # Add power metrics if available
                     if 'power_mean_w' in stats:
                         layer_dict.update({
                             'power_mean_w': stats['power_mean_w'],
@@ -729,12 +720,10 @@ def main():
     results_dir = os.getcwd()
     # Use 'cuda' in filename since ai3 uses GPU internally even though model interface is CPU
     device_name = 'cuda' if use_cuda else 'cpu'
-    # Replace spaces with underscores in algorithm name for cleaner filenames
-    algorithm_filename = ALGORITHM.replace(' ', '_')
     overall_csv = os.path.join(
-        results_dir, f"{MODEL_NAME}_{algorithm_filename}_{device_name}_overall.csv")
+        results_dir, f"{MODEL_NAME}_{ALGORITHM}_{device_name}_overall.csv")
     layers_csv = os.path.join(
-        results_dir, f"{MODEL_NAME}_{algorithm_filename}_{device_name}_layers.csv")
+        results_dir, f"{MODEL_NAME}_{ALGORITHM}_{device_name}_layers.csv")
 
     # Save overall results
     try:

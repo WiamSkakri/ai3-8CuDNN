@@ -1,14 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name=vgg16_gemm_v100
-#SBATCH --output=vgg16_gemm_results_v100/vgg16_gemm_v100_%j.out
-#SBATCH --error=vgg16_gemm_results_v100/vgg16_gemm_v100_%j.err
+#SBATCH --job-name=vgg16_gemm_h100
+#SBATCH --output=vgg16_gemm_results_h100/vgg16_gemm_h100_%j.out
+#SBATCH --error=vgg16_gemm_results_h100/vgg16_gemm_h100_%j.err
 #SBATCH --time=24:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --partition=gpu
-#SBATCH -C gpu2v100
+#SBATCH -C gpu2h100
 #SBATCH --gres=gpu:1
 
 # Job Information
@@ -66,7 +66,7 @@ if [ ! -f "vgg16_gemm.py" ]; then
 fi
 
 # Create results directory
-RESULTS_DIR="vgg16_gemm_results_v100"
+RESULTS_DIR="vgg16_gemm_results_h100"
 echo "Creating results directory: $RESULTS_DIR"
 mkdir -p $RESULTS_DIR
 echo "✓ Results will be saved to: $(pwd)/$RESULTS_DIR"

@@ -188,7 +188,7 @@ The *guess* algorithm uses the algorithm returned by `cudnnGetConvolutionForward
      - |n|
      - |y|
    * - *cudnn*
-     - |n|
+     - |y|
      - |n|
      - |y|
      - |y|

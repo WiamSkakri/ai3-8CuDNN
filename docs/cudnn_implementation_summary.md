@@ -47,10 +47,11 @@ A comprehensive test suite with **4 individual tests** for the cuDNN algorithms 
 - Side-by-side performance metrics
 - Correctness verification against PyTorch baseline
 
-## The 4 cuDNN Algorithms in ai3
+## Core cuDNN Algorithms in ai3
 
 | Algorithm | C++ Implementation | cuDNN Constant | Status |
 |-----------|-------------------|----------------|--------|
+| `direct` | `direct_cudnn.cpp` | `CUDNN_CONVOLUTION_FWD_ALGO_DIRECT` | ✅ Implemented |
 | `gemm` | `gemm_cudnn.cpp` | `CUDNN_CONVOLUTION_FWD_ALGO_GEMM` | ✅ Implemented |
 | `implicit gemm` | `implicit_gemm_cudnn.cpp` | `CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM` | ✅ Implemented |
 | `implicit precomp gemm` | `implicit_precomp_gemm_cudnn.cpp` | `CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM` | ✅ Implemented |
@@ -60,10 +61,10 @@ A comprehensive test suite with **4 individual tests** for the cuDNN algorithms 
 
 | Algorithm | Status | Notes |
 |-----------|--------|-------|
-| `winograd` | ✅ Implemented | Only for 3x3 kernels with stride=1 |
-| `winograd nonfused` | ✅ Implemented | Same restrictions as winograd |
+| `winograd` | ✅ Implemented | Only for 3x3 kernels with stride=1* |
+| `winograd nonfused` | ✅ Implemented | Same restrictions as winograd* |
 
-**Not included in VGG16 tests** because VGG16 has layers that don't meet Winograd's strict requirements.
+\* **Not included in VGG16 tests** because VGG16 has layers that don't meet Winograd's strict requirements.
 
 ## Algorithms NOT Yet Implemented
 
@@ -139,10 +140,13 @@ Verifying output correctness...
                       ▼
 ┌─────────────────────────────────────────────────────────┐
 │            Algorithm-specific files                      │
+│  conv2d/direct_cudnn.cpp                                │
 │  conv2d/gemm_cudnn.cpp                                  │
 │  conv2d/implicit_gemm_cudnn.cpp                         │
 │  conv2d/implicit_precomp_gemm_cudnn.cpp                 │
 │  conv2d/guess_cudnn.cpp                                 │
+│  conv2d/winograd_cudnn.cpp                              │
+│  conv2d/winograd_nonfused_cudnn.cpp                     │
 └─────────────────────┬───────────────────────────────────┘
                       │
                       ▼
@@ -170,13 +174,15 @@ Based on typical behavior:
 
 | Algorithm | Best For | Memory | Speed |
 |-----------|----------|--------|-------|
+| **Direct** | Small batch sizes, unusual filter sizes | Low | Fair |
 | **GEMM** | Standard convolutions | High | Good |
 | **Implicit GEMM** | Modern GPUs with Tensor Cores | Medium | Excellent |
 | **Implicit Precomp GEMM** | Filter reuse scenarios | Medium-High | Very Good |
 | **Guess** | When unsure | Varies | Optimal (auto-selects) |
 | **Winograd** | 3x3, stride=1 only | Low | Excellent* |
+| **Winograd Nonfused** | 3x3, stride=1 only | Low | Very Good* |
 
-*When applicable
+*When applicable (3×3 kernels with stride=1)
 
 ## VGG16 Architecture
 
@@ -196,10 +202,13 @@ This variety makes it ideal for testing algorithm performance across different c
 
 ### Referenced Existing Files
 - `src/ai3/csrc/conv2d/exec_cudnn.hpp` - Shared cuDNN executor
+- `src/ai3/csrc/conv2d/direct_cudnn.cpp` - Direct algorithm implementation
 - `src/ai3/csrc/conv2d/gemm_cudnn.cpp` - GEMM implementation
 - `src/ai3/csrc/conv2d/implicit_gemm_cudnn.cpp` - Implicit GEMM
 - `src/ai3/csrc/conv2d/implicit_precomp_gemm_cudnn.cpp` - Precomp GEMM
 - `src/ai3/csrc/conv2d/guess_cudnn.cpp` - Auto-selection
+- `src/ai3/csrc/conv2d/winograd_cudnn.cpp` - Winograd implementation
+- `src/ai3/csrc/conv2d/winograd_nonfused_cudnn.cpp` - Winograd Nonfused implementation
 - `src/ai3/csrc/algos.hpp` - Algorithm declarations
 - `run.py` - Contains `CONV2D_ALGOS_TO_USE` configuration
 

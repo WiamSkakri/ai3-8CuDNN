@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-VGG16 Implicit GEMM Performance Profiling with Power Monitoring
+Optimized VGG16 Winograd Nonfused Performance Profiling with ai3
 
 This script provides production-quality performance profiling for VGG16
-using ai3's Implicit GEMM algorithm with proper CUDA timing, statistical analysis,
+using ai3's Winograd Nonfused algorithm with proper CUDA timing, statistical analysis,
 and layer-wise performance breakdown.
 
 Key improvements:
@@ -12,8 +12,6 @@ Key improvements:
 - Memory-efficient data collection
 - Systematic input size sampling
 - Layer-wise profiling with minimal overhead
-- Integrated power monitoring using pynvml
-- Energy consumption calculations (Power × Time)
 """
 
 import torch
@@ -429,12 +427,12 @@ def print_cuda_info():
 def main():
     """Main profiling function"""
     print("=" * 80)
-    print("OPTIMIZED VGG16 IMPLICIT GEMM PERFORMANCE PROFILING")
+    print("OPTIMIZED VGG16 WINOGRAD NONFUSED PERFORMANCE PROFILING")
     print("=" * 80)
 
     # Configuration
     MODEL_NAME = "VGG16"
-    ALGORITHM = "implicit gemm"
+    ALGORITHM = "winograd nonfused"
     BATCH_SIZE = 1
     WARMUP_ITERS = 10
     MEASURE_ITERS = 20
@@ -443,7 +441,7 @@ def main():
     # Uses regular intervals from 224 to 512 (inclusive)
     # Much better than random sampling: predictable, reproducible, good coverage
     # Step size: (512 - 224) / 99 ≈ 2.91 → ~3 pixels between each size
-    INPUT_SIZES = [224 + int(i * (512 - 224) / 99) for i in range(100)]
+    INPUT_SIZES = [224 + int(i * (512 - 224) / 99) for i in range(1)]
 
     print(f"\nConfiguration:")
     print(f"  Model: {MODEL_NAME}")
@@ -512,7 +510,7 @@ def main():
     # while using GPU internally for computation
     print(f"\n✓ Model ready (ai3 will use GPU internally for conv operations)")
 
-    # Initialize timer with power monitoring
+    # Initialize timer
     timer = CUDALayerTimer(use_cuda=use_cuda, power_monitor=power_monitor)
     timer.register_hooks(model)
 
@@ -568,17 +566,12 @@ def main():
                 f"    Range: [{overall_stats['min']:.2f}ms - {overall_stats['max']:.2f}ms]")
             print(f"    Median: {overall_stats['median']:.2f}ms")
 
+            # Print power and energy metrics if available
             if 'power_mean_w' in overall_stats:
                 print(
-                    f"  ✓ Overall Power: {overall_stats['power_mean_w']:.2f}W ± {overall_stats['power_std_w']:.2f}W")
-                print(
-                    f"    Range: [{overall_stats['power_min_w']:.2f}W - {overall_stats['power_max_w']:.2f}W]")
-
-            if 'energy_mean_j' in overall_stats:
-                print(
-                    f"  ✓ Energy per Inference: {overall_stats['energy_mean_j']:.4f}J")
-                print(
-                    f"    Total Energy: {overall_stats['energy_total_j']:.4f}J ({MEASURE_ITERS} runs)")
+                    f"    Power: {overall_stats['power_mean_w']:.2f}W ± {overall_stats['power_std_w']:.2f}W")
+            if 'energy_total_j' in overall_stats:
+                print(f"    Energy: {overall_stats['energy_total_j']:.4f}J")
 
             # Store results
             device_name_for_csv = 'cuda' if use_cuda else 'cpu'
@@ -597,19 +590,15 @@ def main():
 
             # Add power metrics if available
             if 'power_mean_w' in overall_stats:
-                result_dict.update({
-                    'power_mean_w': overall_stats['power_mean_w'],
-                    'power_std_w': overall_stats['power_std_w'],
-                    'power_min_w': overall_stats['power_min_w'],
-                    'power_max_w': overall_stats['power_max_w'],
-                })
+                result_dict['power_mean_w'] = overall_stats['power_mean_w']
+                result_dict['power_std_w'] = overall_stats['power_std_w']
+                result_dict['power_min_w'] = overall_stats['power_min_w']
+                result_dict['power_max_w'] = overall_stats['power_max_w']
 
             if 'energy_mean_j' in overall_stats:
-                result_dict.update({
-                    'energy_mean_j': overall_stats['energy_mean_j'],
-                    'energy_std_j': overall_stats['energy_std_j'],
-                    'energy_total_j': overall_stats['energy_total_j']
-                })
+                result_dict['energy_mean_j'] = overall_stats['energy_mean_j']
+                result_dict['energy_std_j'] = overall_stats['energy_std_j']
+                result_dict['energy_total_j'] = overall_stats['energy_total_j']
 
             overall_results.append(result_dict)
         except Exception as e:
@@ -652,14 +641,8 @@ def main():
                     percentage = (stats['mean'] / overall_stats['mean']) * 100
                     algo = layer_info.get(layer_name, {}).get(
                         'algorithm', 'unknown')
-                    power_str = ""
-                    if 'power_mean_w' in stats:
-                        power_str = f" | {stats['power_mean_w']:.2f}W"
-                    energy_str = ""
-                    if 'energy_mean_j' in stats:
-                        energy_str = f" | {stats['energy_mean_j']:.4f}J"
                     print(
-                        f"    {layer_name}: {stats['mean']:.2f}ms ± {stats['std']:.2f}ms ({percentage:.1f}%) [{algo}]{power_str}{energy_str}")
+                        f"    {layer_name}: {stats['mean']:.2f}ms ± {stats['std']:.2f}ms ({percentage:.1f}%) [{algo}]")
 
                 # Store all layer results
                 for layer_name, stats in layer_stats.items():
@@ -667,7 +650,7 @@ def main():
                     layer_input_size = layer_input_sizes.get(
                         layer_name, input_size)
 
-                    layer_dict = {
+                    layer_result = {
                         'model': MODEL_NAME,
                         'layer': layer_name,
                         'algorithm': ALGORITHM,
@@ -689,21 +672,17 @@ def main():
 
                     # Add power metrics if available
                     if 'power_mean_w' in stats:
-                        layer_dict.update({
-                            'power_mean_w': stats['power_mean_w'],
-                            'power_std_w': stats['power_std_w'],
-                            'power_min_w': stats['power_min_w'],
-                            'power_max_w': stats['power_max_w']
-                        })
+                        layer_result['power_mean_w'] = stats['power_mean_w']
+                        layer_result['power_std_w'] = stats['power_std_w']
+                        layer_result['power_min_w'] = stats['power_min_w']
+                        layer_result['power_max_w'] = stats['power_max_w']
 
                     if 'energy_mean_j' in stats:
-                        layer_dict.update({
-                            'energy_mean_j': stats['energy_mean_j'],
-                            'energy_std_j': stats['energy_std_j'],
-                            'energy_total_j': stats['energy_total_j']
-                        })
+                        layer_result['energy_mean_j'] = stats['energy_mean_j']
+                        layer_result['energy_std_j'] = stats['energy_std_j']
+                        layer_result['energy_total_j'] = stats['energy_total_j']
 
-                    layer_results.append(layer_dict)
+                    layer_results.append(layer_result)
             else:
                 print(f"  ⚠ No layer timing data collected")
 
@@ -717,9 +696,6 @@ def main():
 
     # Remove hooks
     timer.remove_hooks()
-
-    # Cleanup power monitor
-    power_monitor.cleanup()
 
     # Save results to CSV
     print(f"\n{'='*80}")
@@ -768,12 +744,13 @@ def main():
     print(f"  ✓ {MEASURE_ITERS} iterations per size")
     print(f"  ✓ Overall results: {len(overall_results)} data points")
     print(f"  ✓ Layer results: {len(layer_results)} data points")
-    print(
-        f"  ✓ Power monitoring: {'ENABLED' if power_monitor.enabled else 'DISABLED'}")
     print(f"\nResults saved to:")
     print(f"  - {overall_csv}")
     print(f"  - {layers_csv}")
     print(f"{'='*80}\n")
+
+    # Cleanup power monitor
+    power_monitor.cleanup()
 
 
 if __name__ == "__main__":

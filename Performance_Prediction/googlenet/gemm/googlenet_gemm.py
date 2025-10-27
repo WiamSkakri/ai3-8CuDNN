@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 """
-VGG16 Implicit GEMM Performance Profiling with Power Monitoring
+Optimized GoogLeNet GEMM Performance Profiling with ai3
 
-This script provides production-quality performance profiling for VGG16
-using ai3's Implicit GEMM algorithm with proper CUDA timing, statistical analysis,
+This script provides production-quality performance profiling for GoogLeNet
+using ai3's GEMM algorithm with proper CUDA timing, statistical analysis,
 and layer-wise performance breakdown.
-
+ - FULL VERSION with Power Monitoring
 Key improvements:
+- Integrated power monitoring using NVML (pynvml)
 - CUDA event-based timing for accurate GPU measurements
 - Proper warmup and statistical analysis
 - Memory-efficient data collection
 - Systematic input size sampling
 - Layer-wise profiling with minimal overhead
-- Integrated power monitoring using pynvml
-- Energy consumption calculations (Power × Time)
 """
 
 import torch
@@ -27,9 +26,6 @@ from collections import defaultdict
 from typing import Dict, List, Tuple, Optional
 import numpy as np
 
-# Add parent directories to path for imports
-sys.path.insert(0, os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../..')))
 
 # Try to import pynvml for power monitoring
 try:
@@ -37,60 +33,50 @@ try:
     PYNVML_AVAILABLE = True
 except ImportError:
     PYNVML_AVAILABLE = False
-    print("⚠ WARNING: pynvml not available. Power monitoring will be disabled.")
-    print("  Install with: pip install nvidia-ml-py3")
+    print("Warning: pynvml not available. Power monitoring will be disabled.")
+    print("Install with: pip install nvidia-ml-py3")
+
+ to path for imports
+sys.path.insert(0, os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '../..')))
 
 
 class PowerMonitor:
-    """
-    GPU power monitoring using NVIDIA Management Library (NVML).
-    Provides synchronized power measurements with performance profiling.
-    """
-
-    def __init__(self):
-        self.enabled = False
+    """Monitor GPU power consumption using NVML"""
+    
+    def __init__(self, device_index: int = 0):
+        self.enabled = PYNVML_AVAILABLE
+        self.device_index = device_index
         self.handle = None
-
-        if not PYNVML_AVAILABLE:
-            return
-
-        try:
-            pynvml.nvmlInit()
-            self.handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-            self.enabled = True
-
-            # Test reading power
-            power = self.get_power()
-            if power is not None:
-                print(
-                    f"✓ Power monitoring initialized (current: {power:.2f}W)")
-            else:
+        
+        if self.enabled:
+            try:
+                pynvml.nvmlInit()
+                self.handle = pynvml.nvmlDeviceGetHandleByIndex(device_index)
+            except Exception as e:
+                print(f"Warning: Failed to initialize NVML: {e}")
                 self.enabled = False
-                print("⚠ Power monitoring not available on this GPU")
-        except Exception as e:
-            print(f"⚠ Could not initialize power monitoring: {e}")
-            self.enabled = False
-
+    
     def get_power(self) -> Optional[float]:
         """Get current power draw in Watts"""
-        if not self.enabled:
+        if not self.enabled or self.handle is None:
             return None
         try:
             power_mw = pynvml.nvmlDeviceGetPowerUsage(self.handle)
-            return power_mw / 1000.0  # Convert milliwatts to watts
+            return power_mw / 1000.0  # Convert mW to W
         except Exception:
             return None
-
+    
     def get_power_limit(self) -> Optional[float]:
         """Get power limit in Watts"""
-        if not self.enabled:
+        if not self.enabled or self.handle is None:
             return None
         try:
-            limit_mw = pynvml.nvmlDeviceGetPowerManagementLimit(self.handle)
-            return limit_mw / 1000.0
+            power_limit_mw = pynvml.nvmlDeviceGetPowerManagementLimit(self.handle)
+            return power_limit_mw / 1000.0
         except Exception:
             return None
-
+    
     def cleanup(self):
         """Cleanup NVML"""
         if self.enabled:
@@ -102,9 +88,10 @@ class PowerMonitor:
 
 class CUDALayerTimer:
     """
-    High-precision layer timer with integrated power monitoring.
-    Uses CUDA events for timing and NVML for power measurements.
-    """
+    High-precision layer timer using CUDA events for accurate GPU profiling.
+    Minimizes Python overhead by using GPU-based timing.
+    
+    Includes integrated power monitoring."""
 
     def __init__(self, use_cuda: bool = True, power_monitor: Optional[PowerMonitor] = None):
         self.use_cuda = use_cuda and torch.cuda.is_available()
@@ -161,13 +148,12 @@ class CUDALayerTimer:
                 # Use CUDA events for precise GPU timing
                 start_event = torch.cuda.Event(enable_timing=True)
                 start_event.record()
-
                 # Sample power at start
                 power_start = self.power_monitor.get_power() if self.power_monitor else None
-
+                
                 self.current_events[name] = {
-                    'start': start_event,
-                    'power_start': power_start
+                    \'start\': start_event,
+                    \'power_start\': power_start
                 }
             else:
                 # CPU fallback
@@ -204,6 +190,7 @@ class CUDALayerTimer:
                 end_event.record()
                 torch.cuda.synchronize()  # Wait for completion
 
+                
                 # Sample power at end
                 power_end = self.power_monitor.get_power() if self.power_monitor else None
 
@@ -211,7 +198,7 @@ class CUDALayerTimer:
                 duration_ms = event_data['start'].elapsed_time(end_event)
                 event_data['duration_ms'] = duration_ms
                 event_data['power_end'] = power_end
-
+                
                 # Calculate average power and energy
                 if event_data.get('power_start') is not None and power_end is not None:
                     avg_power = (event_data['power_start'] + power_end) / 2.0
@@ -245,16 +232,16 @@ class CUDALayerTimer:
         self.hooks = []
 
     def get_statistics(self) -> Dict[str, Dict[str, float]]:
-        """Calculate comprehensive statistics including power metrics"""
+        """Calculate comprehensive statistics including power metrics for each layer"""
         results = {}
         for name, times in self.layer_times.items():
             durations = [entry.get('duration_ms', 0)
                          for entry in times if 'duration_ms' in entry]
             powers = [entry.get('power_avg_w', 0)
-                      for entry in times if entry.get('power_avg_w') is not None]
+                     for entry in times if entry.get('power_avg_w') is not None]
             energies = [entry.get('energy_j', 0)
-                        for entry in times if entry.get('energy_j') is not None]
-
+                       for entry in times if entry.get('energy_j') is not None]
+            
             if durations:
                 stats = {
                     'mean': np.mean(durations),
@@ -264,19 +251,19 @@ class CUDALayerTimer:
                     'median': np.median(durations),
                     'count': len(durations)
                 }
-
+                
                 # Add power statistics if available
                 if powers:
                     stats['power_mean_w'] = np.mean(powers)
                     stats['power_std_w'] = np.std(powers)
                     stats['power_min_w'] = np.min(powers)
                     stats['power_max_w'] = np.max(powers)
-
+                
                 if energies:
                     stats['energy_mean_j'] = np.mean(energies)
                     stats['energy_std_j'] = np.std(energies)
                     stats['energy_total_j'] = np.sum(energies)
-
+                
                 results[name] = stats
         return results
 
@@ -331,7 +318,7 @@ def measure_overall_performance(
             for _ in range(measure_iters):
                 # Sample power before inference
                 power_start = power_monitor.get_power() if power_monitor else None
-
+                
                 start_event = torch.cuda.Event(enable_timing=True)
                 end_event = torch.cuda.Event(enable_timing=True)
 
@@ -340,19 +327,20 @@ def measure_overall_performance(
                 end_event.record()
 
                 torch.cuda.synchronize()
-
+                
                 # Sample power after inference
                 power_end = power_monitor.get_power() if power_monitor else None
-
+                
                 duration_ms = start_event.elapsed_time(end_event)
                 times.append(duration_ms)
-
+                
                 # Calculate power and energy
                 if power_start is not None and power_end is not None:
                     avg_power = (power_start + power_end) / 2.0
                     powers.append(avg_power)
                     energy_j = avg_power * (duration_ms / 1000.0)
-                    energies.append(energy_j)
+                    energies.append(energy_j)(start_event.elapsed_time(
+                    end_event))  # milliseconds
         else:
             for _ in range(measure_iters):
                 if torch.cuda.is_available():
@@ -371,19 +359,19 @@ def measure_overall_performance(
         'max': np.max(times),
         'median': np.median(times)
     }
-
+    
     # Add power statistics if available
     if powers:
         stats['power_mean_w'] = np.mean(powers)
         stats['power_std_w'] = np.std(powers)
         stats['power_min_w'] = np.min(powers)
         stats['power_max_w'] = np.max(powers)
-
+    
     if energies:
         stats['energy_mean_j'] = np.mean(energies)
         stats['energy_std_j'] = np.std(energies)
         stats['energy_total_j'] = np.sum(energies)
-
+    
     return stats
 
 
@@ -429,12 +417,12 @@ def print_cuda_info():
 def main():
     """Main profiling function"""
     print("=" * 80)
-    print("OPTIMIZED VGG16 IMPLICIT GEMM PERFORMANCE PROFILING")
+    print("OPTIMIZED RESNET152 GEMM PERFORMANCE PROFILING")
     print("=" * 80)
 
     # Configuration
-    MODEL_NAME = "VGG16"
-    ALGORITHM = "implicit gemm"
+    MODEL_NAME = "GoogLeNet"
+    ALGORITHM = "gemm"
     BATCH_SIZE = 1
     WARMUP_ITERS = 10
     MEASURE_ITERS = 20
@@ -453,10 +441,10 @@ def main():
     print(f"  Measurement iterations: {MEASURE_ITERS}")
     print(f"  Number of input sizes: {len(INPUT_SIZES)}")
     print(f"  Input size range: {INPUT_SIZES[0]} to {INPUT_SIZES[-1]}")
-    print(f"  Sample sizes: {INPUT_SIZES[:5]} ... {INPUT_SIZES[-5:]}")
-
+    
     # Initialize power monitoring
-    print("\nInitializing power monitoring...")
+    print("
+Initializing power monitoring...")
     power_monitor = PowerMonitor()
     if power_monitor.enabled:
         power_limit = power_monitor.get_power_limit()
@@ -470,7 +458,7 @@ def main():
     device = torch.device('cpu')
 
     # Check ai3 cuDNN support
-    if ALGORITHM in ['gemm', 'implicit gemm', 'implicit precomp gemm', 'winograd', 'winograd nonfused']:
+    if ALGORITHM in ['gemm', 'implicit_gemm', 'implicit_precomp_gemm', 'winograd', 'winograd_nonfused']:
         if not ai3.using_cudnn():
             print("\n✗ ERROR: cuDNN is not available in ai3")
             print("  This algorithm requires cuDNN support")
@@ -481,7 +469,7 @@ def main():
     # Load model
     print(f"\nLoading {MODEL_NAME}...")
     try:
-        model = models.vgg16(weights=models.VGG16_Weights.DEFAULT)
+        model = models.googlenet(weights=models.GoogLeNet_Weights.DEFAULT)
         model.eval()
         print(f"✓ {MODEL_NAME} loaded")
     except Exception as e:
@@ -512,7 +500,7 @@ def main():
     # while using GPU internally for computation
     print(f"\n✓ Model ready (ai3 will use GPU internally for conv operations)")
 
-    # Initialize timer with power monitoring
+    # Initialize timer
     timer = CUDALayerTimer(use_cuda=use_cuda, power_monitor=power_monitor)
     timer.register_hooks(model)
 
@@ -568,17 +556,12 @@ def main():
                 f"    Range: [{overall_stats['min']:.2f}ms - {overall_stats['max']:.2f}ms]")
             print(f"    Median: {overall_stats['median']:.2f}ms")
 
+            
+            # Print power and energy metrics if available
             if 'power_mean_w' in overall_stats:
-                print(
-                    f"  ✓ Overall Power: {overall_stats['power_mean_w']:.2f}W ± {overall_stats['power_std_w']:.2f}W")
-                print(
-                    f"    Range: [{overall_stats['power_min_w']:.2f}W - {overall_stats['power_max_w']:.2f}W]")
-
-            if 'energy_mean_j' in overall_stats:
-                print(
-                    f"  ✓ Energy per Inference: {overall_stats['energy_mean_j']:.4f}J")
-                print(
-                    f"    Total Energy: {overall_stats['energy_total_j']:.4f}J ({MEASURE_ITERS} runs)")
+                print(f"    Power: {overall_stats['power_mean_w']:.2f}W ± {overall_stats['power_std_w']:.2f}W")
+            if 'energy_total_j' in overall_stats:
+                print(f"    Energy: {overall_stats['energy_total_j']:.4f}J")
 
             # Store results
             device_name_for_csv = 'cuda' if use_cuda else 'cpu'
@@ -594,23 +577,19 @@ def main():
                 'max_ms': overall_stats['max'],
                 'median_ms': overall_stats['median']
             }
-
+            
             # Add power metrics if available
             if 'power_mean_w' in overall_stats:
-                result_dict.update({
-                    'power_mean_w': overall_stats['power_mean_w'],
-                    'power_std_w': overall_stats['power_std_w'],
-                    'power_min_w': overall_stats['power_min_w'],
-                    'power_max_w': overall_stats['power_max_w'],
-                })
-
+                result_dict['power_mean_w'] = overall_stats['power_mean_w']
+                result_dict['power_std_w'] = overall_stats['power_std_w']
+                result_dict['power_min_w'] = overall_stats['power_min_w']
+                result_dict['power_max_w'] = overall_stats['power_max_w']
+            
             if 'energy_mean_j' in overall_stats:
-                result_dict.update({
-                    'energy_mean_j': overall_stats['energy_mean_j'],
-                    'energy_std_j': overall_stats['energy_std_j'],
-                    'energy_total_j': overall_stats['energy_total_j']
-                })
-
+                result_dict['energy_mean_j'] = overall_stats['energy_mean_j']
+                result_dict['energy_std_j'] = overall_stats['energy_std_j']
+                result_dict['energy_total_j'] = overall_stats['energy_total_j']
+            
             overall_results.append(result_dict)
         except Exception as e:
             print(f"  ✗ Error during overall measurement: {e}")
@@ -652,14 +631,8 @@ def main():
                     percentage = (stats['mean'] / overall_stats['mean']) * 100
                     algo = layer_info.get(layer_name, {}).get(
                         'algorithm', 'unknown')
-                    power_str = ""
-                    if 'power_mean_w' in stats:
-                        power_str = f" | {stats['power_mean_w']:.2f}W"
-                    energy_str = ""
-                    if 'energy_mean_j' in stats:
-                        energy_str = f" | {stats['energy_mean_j']:.4f}J"
                     print(
-                        f"    {layer_name}: {stats['mean']:.2f}ms ± {stats['std']:.2f}ms ({percentage:.1f}%) [{algo}]{power_str}{energy_str}")
+                        f"    {layer_name}: {stats['mean']:.2f}ms ± {stats['std']:.2f}ms ({percentage:.1f}%) [{algo}]")
 
                 # Store all layer results
                 for layer_name, stats in layer_stats.items():
@@ -667,7 +640,7 @@ def main():
                     layer_input_size = layer_input_sizes.get(
                         layer_name, input_size)
 
-                    layer_dict = {
+                    layer_result = {
                         'model': MODEL_NAME,
                         'layer': layer_name,
                         'algorithm': ALGORITHM,
@@ -686,24 +659,20 @@ def main():
                         'median_ms': stats['median'],
                         'percentage': (stats['mean'] / overall_stats['mean']) * 100
                     }
-
+                    
                     # Add power metrics if available
                     if 'power_mean_w' in stats:
-                        layer_dict.update({
-                            'power_mean_w': stats['power_mean_w'],
-                            'power_std_w': stats['power_std_w'],
-                            'power_min_w': stats['power_min_w'],
-                            'power_max_w': stats['power_max_w']
-                        })
-
+                        layer_result['power_mean_w'] = stats['power_mean_w']
+                        layer_result['power_std_w'] = stats['power_std_w']
+                        layer_result['power_min_w'] = stats['power_min_w']
+                        layer_result['power_max_w'] = stats['power_max_w']
+                    
                     if 'energy_mean_j' in stats:
-                        layer_dict.update({
-                            'energy_mean_j': stats['energy_mean_j'],
-                            'energy_std_j': stats['energy_std_j'],
-                            'energy_total_j': stats['energy_total_j']
-                        })
-
-                    layer_results.append(layer_dict)
+                        layer_result['energy_mean_j'] = stats['energy_mean_j']
+                        layer_result['energy_std_j'] = stats['energy_std_j']
+                        layer_result['energy_total_j'] = stats['energy_total_j']
+                    
+                    layer_results.append(layer_result)
             else:
                 print(f"  ⚠ No layer timing data collected")
 
@@ -718,9 +687,6 @@ def main():
     # Remove hooks
     timer.remove_hooks()
 
-    # Cleanup power monitor
-    power_monitor.cleanup()
-
     # Save results to CSV
     print(f"\n{'='*80}")
     print("SAVING RESULTS")
@@ -729,12 +695,10 @@ def main():
     results_dir = os.getcwd()
     # Use 'cuda' in filename since ai3 uses GPU internally even though model interface is CPU
     device_name = 'cuda' if use_cuda else 'cpu'
-    # Replace spaces with underscores in algorithm name for cleaner filenames
-    algorithm_filename = ALGORITHM.replace(' ', '_')
     overall_csv = os.path.join(
-        results_dir, f"{MODEL_NAME}_{algorithm_filename}_{device_name}_overall.csv")
+        results_dir, f"{MODEL_NAME}_{ALGORITHM}_{device_name}_overall.csv")
     layers_csv = os.path.join(
-        results_dir, f"{MODEL_NAME}_{algorithm_filename}_{device_name}_layers.csv")
+        results_dir, f"{MODEL_NAME}_{ALGORITHM}_{device_name}_layers.csv")
 
     # Save overall results
     try:
@@ -768,12 +732,15 @@ def main():
     print(f"  ✓ {MEASURE_ITERS} iterations per size")
     print(f"  ✓ Overall results: {len(overall_results)} data points")
     print(f"  ✓ Layer results: {len(layer_results)} data points")
-    print(
-        f"  ✓ Power monitoring: {'ENABLED' if power_monitor.enabled else 'DISABLED'}")
     print(f"\nResults saved to:")
     print(f"  - {overall_csv}")
     print(f"  - {layers_csv}")
     print(f"{'='*80}\n")
+
+
+
+    # Cleanup power monitor
+    power_monitor.cleanup()
 
 
 if __name__ == "__main__":

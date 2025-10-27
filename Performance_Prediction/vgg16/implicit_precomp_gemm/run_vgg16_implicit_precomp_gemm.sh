@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=vgg16_gemm_v100
-#SBATCH --output=vgg16_gemm_results_v100/vgg16_gemm_v100_%j.out
-#SBATCH --error=vgg16_gemm_results_v100/vgg16_gemm_v100_%j.err
+#SBATCH --job-name=vgg16_implicit_precomp_gemm_v100
+#SBATCH --output=vgg16_implicit_precomp_gemm_results_v100/vgg16_implicit_precomp_gemm_v100_%j.out
+#SBATCH --error=vgg16_implicit_precomp_gemm_results_v100/vgg16_implicit_precomp_gemm_v100_%j.err
 #SBATCH --time=24:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -54,19 +54,19 @@ echo ""
 cd $SLURM_SUBMIT_DIR
 echo "Working directory: $(pwd)"
 echo "Files in directory:"
-ls -la vgg16_gemm.py 2>/dev/null || echo "  ⚠ WARNING: vgg16_gemm.py not found in current directory!"
+ls -la vgg16_implicit_precomp_gemm.py 2>/dev/null || echo "  ⚠ WARNING: vgg16_implicit_precomp_gemm.py not found in current directory!"
 echo ""
 
 # Verify script exists
-if [ ! -f "vgg16_gemm.py" ]; then
-    echo "✗ ERROR: vgg16_gemm.py not found!"
-    echo "Expected location: $(pwd)/vgg16_gemm.py"
-    echo "Please ensure you submit the job from the directory containing vgg16_gemm.py"
+if [ ! -f "vgg16_implicit_precomp_gemm.py" ]; then
+    echo "✗ ERROR: vgg16_implicit_precomp_gemm.py not found!"
+    echo "Expected location: $(pwd)/vgg16_implicit_precomp_gemm.py"
+    echo "Please ensure you submit the job from the directory containing vgg16_implicit_precomp_gemm.py"
     exit 1
 fi
 
 # Create results directory
-RESULTS_DIR="vgg16_gemm_results_v100"
+RESULTS_DIR="vgg16_implicit_precomp_gemm_results_v100"
 echo "Creating results directory: $RESULTS_DIR"
 mkdir -p $RESULTS_DIR
 echo "✓ Results will be saved to: $(pwd)/$RESULTS_DIR"
@@ -77,12 +77,12 @@ cd $RESULTS_DIR
 
 # Run the profiling script
 echo "=========================================="
-echo "Starting VGG16 GEMM Profiling..."
+echo "Starting VGG16 Implicit Precomp GEMM Profiling..."
 echo "=========================================="
 echo ""
 
 # Run script from parent directory, output will be saved in current (results) directory
-python ../vgg16_gemm.py
+python ../vgg16_implicit_precomp_gemm.py
 
 # Check exit status
 EXIT_CODE=$?
@@ -101,4 +101,5 @@ echo "End Time: $(date)"
 echo "=========================================="
 
 exit $EXIT_CODE
+
 

@@ -166,7 +166,10 @@ The *guess* algorithm uses the algorithm returned by `cudnnGetConvolutionForward
      - *gemm*
      - *implicit precomp gemm*
      - *implicit gemm*
+     - *fft*
+     - *fft tiling*
      - *winograd*
+     - *winograd nonfused*
      - *guess*
      - some
    * - *none*
@@ -177,10 +180,16 @@ The *guess* algorithm uses the algorithm returned by `cudnnGetConvolutionForward
      - |n|
      - |n|
      - |n|
+     - |n|
+     - |n|
+     - |n|
      - |y|
    * - *sycl*
      - |y|
      - |y|
+     - |n|
+     - |n|
+     - |n|
      - |n|
      - |n|
      - |n|
@@ -196,7 +205,13 @@ The *guess* algorithm uses the algorithm returned by `cudnnGetConvolutionForward
      - |y|
      - |y|
      - |y|
+     - |y|
+     - |y|
+     - |y|
    * - *cublas*
+     - |n|
+     - |n|
+     - |n|
      - |n|
      - |n|
      - |n|
@@ -213,8 +228,14 @@ The *guess* algorithm uses the algorithm returned by `cudnnGetConvolutionForward
      - |n|
      - |n|
      - |n|
+     - |n|
+     - |n|
+     - |n|
      - |y|
    * - *metal*
+     - |n|
+     - |n|
+     - |n|
      - |n|
      - |n|
      - |n|

@@ -25,6 +25,8 @@ template <typename dtype> Tensor winograd_nonfused(CONV2D_PARAMS);
 template <typename dtype> Tensor implicit_gemm(CONV2D_PARAMS);
 template <typename dtype> Tensor implicit_precomp_gemm(CONV2D_PARAMS);
 template <typename dtype> Tensor gemm(CONV2D_PARAMS);
+template <typename dtype> Tensor fft(CONV2D_PARAMS);
+template <typename dtype> Tensor fft_tiling(CONV2D_PARAMS);
 template <typename dtype> Tensor guess(CONV2D_PARAMS);
 template <typename dtype> Tensor metal(CONV2D_PARAMS);
 template <typename dtype> Tensor mps(CONV2D_PARAMS);

@@ -55,6 +55,8 @@ A comprehensive test suite with **4 individual tests** for the cuDNN algorithms 
 | `gemm` | `gemm_cudnn.cpp` | `CUDNN_CONVOLUTION_FWD_ALGO_GEMM` | ✅ Implemented |
 | `implicit gemm` | `implicit_gemm_cudnn.cpp` | `CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM` | ✅ Implemented |
 | `implicit precomp gemm` | `implicit_precomp_gemm_cudnn.cpp` | `CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_PRECOMP_GEMM` | ✅ Implemented |
+| `fft` | `fft_cudnn.cpp` | `CUDNN_CONVOLUTION_FWD_ALGO_FFT` | ✅ Implemented |
+| `fft tiling` | `fft_tiling_cudnn.cpp` | `CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING` | ✅ Implemented |
 | `guess` | `guess_cudnn.cpp` | Auto-selects via `cudnnGetConvolutionForwardAlgorithm_v7` | ✅ Implemented |
 
 ## Additional cuDNN Algorithms (Also Implemented)
@@ -66,12 +68,9 @@ A comprehensive test suite with **4 individual tests** for the cuDNN algorithms 
 
 \* **Not included in VGG16 tests** because VGG16 has layers that don't meet Winograd's strict requirements.
 
-## Algorithms NOT Yet Implemented
+## All 8 cuDNN Forward Convolution Algorithms Now Implemented! 🎉
 
-| Algorithm | cuDNN Constant | Status |
-|-----------|----------------|--------|
-| FFT | `CUDNN_CONVOLUTION_FWD_ALGO_FFT` | ❌ Not implemented |
-| FFT Tiling | `CUDNN_CONVOLUTION_FWD_ALGO_FFT_TILING` | ❌ Not implemented |
+✅ **Complete implementation of all 8 cuDNN convolution algorithms**
 
 ## Running the Tests
 
@@ -144,6 +143,8 @@ Verifying output correctness...
 │  conv2d/gemm_cudnn.cpp                                  │
 │  conv2d/implicit_gemm_cudnn.cpp                         │
 │  conv2d/implicit_precomp_gemm_cudnn.cpp                 │
+│  conv2d/fft_cudnn.cpp                                   │
+│  conv2d/fft_tiling_cudnn.cpp                            │
 │  conv2d/guess_cudnn.cpp                                 │
 │  conv2d/winograd_cudnn.cpp                              │
 │  conv2d/winograd_nonfused_cudnn.cpp                     │
@@ -178,11 +179,14 @@ Based on typical behavior:
 | **GEMM** | Standard convolutions | High | Good |
 | **Implicit GEMM** | Modern GPUs with Tensor Cores | Medium | Excellent |
 | **Implicit Precomp GEMM** | Filter reuse scenarios | Medium-High | Very Good |
+| **FFT** | Large kernel sizes (>5×5) | Very High | Good** |
+| **FFT Tiling** | Large kernels with limited memory | High | Fair** |
 | **Guess** | When unsure | Varies | Optimal (auto-selects) |
 | **Winograd** | 3x3, stride=1 only | Low | Excellent* |
 | **Winograd Nonfused** | 3x3, stride=1 only | Low | Very Good* |
 
-*When applicable (3×3 kernels with stride=1)
+\* When applicable (3×3 kernels with stride=1)  
+\*\* FFT algorithms excel with large kernels but have overhead for small kernels
 
 ## VGG16 Architecture
 
@@ -206,6 +210,8 @@ This variety makes it ideal for testing algorithm performance across different c
 - `src/ai3/csrc/conv2d/gemm_cudnn.cpp` - GEMM implementation
 - `src/ai3/csrc/conv2d/implicit_gemm_cudnn.cpp` - Implicit GEMM
 - `src/ai3/csrc/conv2d/implicit_precomp_gemm_cudnn.cpp` - Precomp GEMM
+- `src/ai3/csrc/conv2d/fft_cudnn.cpp` - FFT implementation
+- `src/ai3/csrc/conv2d/fft_tiling_cudnn.cpp` - FFT Tiling implementation
 - `src/ai3/csrc/conv2d/guess_cudnn.cpp` - Auto-selection
 - `src/ai3/csrc/conv2d/winograd_cudnn.cpp` - Winograd implementation
 - `src/ai3/csrc/conv2d/winograd_nonfused_cudnn.cpp` - Winograd Nonfused implementation

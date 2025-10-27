@@ -8,7 +8,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --partition=gpu
-#SBATCH -C gpuh100
+#SBATCH -C gpu2h100
 #SBATCH --gres=gpu:1
 
 # Job Information

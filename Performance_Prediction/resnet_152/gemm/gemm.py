@@ -15,7 +15,7 @@ import os
 
 # Add parent directories to path for imports
 sys.path.insert(0, os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../..')))
+    os.path.join(os.path.dirname(__file__), '../../..')))
 from bench import predict_show_time  # noqa: E402
 from test import compare_tensors  # noqa: E402
 
@@ -81,4 +81,3 @@ def test_resnet152_gemm():
 if __name__ == '__main__':
     success = test_resnet152_gemm()
     sys.exit(0 if success else 1)
-

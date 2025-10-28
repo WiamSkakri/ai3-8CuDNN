@@ -15,7 +15,7 @@ import os
 
 # Add parent directories to path for imports
 sys.path.insert(0, os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../..')))
+    os.path.join(os.path.dirname(__file__), '../../..')))
 from bench import predict_show_time  # noqa: E402
 from test import compare_tensors  # noqa: E402
 

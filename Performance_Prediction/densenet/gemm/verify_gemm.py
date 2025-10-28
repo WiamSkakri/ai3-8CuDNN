@@ -16,7 +16,7 @@ import os
 
 # Add parent directories to path
 sys.path.insert(0, os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../..')))
+    os.path.join(os.path.dirname(__file__), '../../..')))
 
 BATCH_SIZE = 1
 INPUT_SIZE = 224
@@ -198,7 +198,8 @@ def main():
     print("="*80)
 
     if ai3_ai3 > 0 and ai3_pytorch == 0:
-        print(f"✓ All {ai3_ai3} Conv2D layers were replaced with ai3 GEMM implementation")
+        print(
+            f"✓ All {ai3_ai3} Conv2D layers were replaced with ai3 GEMM implementation")
         print("✓ Layer inspection confirms ai3 algorithm='gemm' is active")
         print(
             f"✓ Performance difference ({diff_pct:+.1f}%) confirms different execution")
@@ -214,4 +215,3 @@ def main():
 if __name__ == '__main__':
     success = main()
     sys.exit(0 if success else 1)
-

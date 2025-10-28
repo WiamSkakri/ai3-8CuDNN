@@ -16,7 +16,7 @@ import os
 
 # Add parent directories to path
 sys.path.insert(0, os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../..')))
+    os.path.join(os.path.dirname(__file__), '../../..')))
 
 BATCH_SIZE = 1
 INPUT_SIZE = 224
@@ -215,4 +215,3 @@ def main():
 if __name__ == '__main__':
     success = main()
     sys.exit(0 if success else 1)
-

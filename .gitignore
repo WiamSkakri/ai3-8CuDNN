@@ -18,3 +18,13 @@ src/ai3/_version.py
 papers/JOSS/jats
 papers/JOSS/paper.pdf
 papers/IEEE_HPEC_24/results
+
+# Performance Prediction results (CSV files and result directories)
+Performance_Prediction/**/results/
+Performance_Prediction/**/*_results_*/
+Performance_Prediction/**/*_results*.csv
+Performance_Prediction/**/*_results*.txt
+Performance_Prediction/**/*.csv
+
+# Virtual environment (additional name)
+ai3_8cudnn/

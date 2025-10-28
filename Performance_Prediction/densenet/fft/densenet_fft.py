@@ -6,17 +6,20 @@ This script adds power consumption monitoring to the performance profiling,
 running on 100 input sizes from 224x224 to 512x512 using FFT algorithm.
 """
 
-from densenet_gemm import PowerMonitor, CUDALayerTimer, measure_overall_performance, format_tuple_value, print_cuda_info
-import torch
-import torchvision.models as models
-import ai3
-import time
-import os
-import csv
-import sys
-from collections import defaultdict
-from typing import Dict, Optional
 import numpy as np
+from typing import Dict, Optional
+from collections import defaultdict
+import csv
+import time
+import ai3
+import torchvision.models as models
+import torch
+from densenet_gemm import PowerMonitor, CUDALayerTimer, measure_overall_performance, format_tuple_value, print_cuda_info
+import sys
+import os
+# Add the gemm directory to path for importing shared utilities
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../gemm'))
+
 
 # Add parent directories to path for imports
 sys.path.insert(0, os.path.abspath(

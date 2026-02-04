@@ -67,7 +67,7 @@ MODEL_REGISTRY: Dict[str, Callable] = {
 # ============================================================================
 ALGORITHMS = [
     'direct',
-    'gemm', 
+    'gemm',
     'implicit gemm',
     'implicit precomp gemm',
     'fft',
@@ -90,7 +90,7 @@ ALGORITHM_COMPATIBILITY = {
 class PowerMonitor:
     """
     GPU power monitoring using NVIDIA Management Library (NVML).
-    
+
     Provides:
     - Real-time power readings (Watts)
     - Power limit information
@@ -115,7 +115,8 @@ class PowerMonitor:
             # Test reading power
             power = self.get_power()
             if power is not None:
-                print(f"✓ Power monitoring initialized (current: {power:.2f}W)")
+                print(
+                    f"✓ Power monitoring initialized (current: {power:.2f}W)")
             else:
                 self.enabled = False
                 print("⚠ Power monitoring not available on this GPU")
@@ -147,17 +148,17 @@ class PowerMonitor:
         """Start continuous power sampling in background thread"""
         if not self.enabled:
             return
-        
+
         self._samples = []
         self._sampling = True
-        
+
         def sample_loop():
             while self._sampling:
                 power = self.get_power()
                 if power is not None:
                     self._samples.append((time.perf_counter(), power))
                 time.sleep(interval_ms / 1000.0)
-        
+
         self._sample_thread = threading.Thread(target=sample_loop, daemon=True)
         self._sample_thread.start()
 
@@ -171,18 +172,18 @@ class PowerMonitor:
     def compute_energy_trapezoidal(self, samples: List[Tuple[float, float]]) -> Dict[str, float]:
         """
         Compute energy using trapezoidal rule (professor's method).
-        
+
         Formula: E = Σ [(P_i + P_{i+1}) / 2] × Δt
-        
+
         Args:
             samples: List of (timestamp, power) tuples
-            
+
         Returns:
             Dictionary with energy (J), avg_power (W), duration (s)
         """
         if len(samples) < 2:
             return {'energy_j': 0, 'avg_power_w': 0, 'duration_s': 0}
-        
+
         total_energy = 0.0
         for i in range(len(samples) - 1):
             t1, p1 = samples[i]
@@ -190,10 +191,10 @@ class PowerMonitor:
             dt = t2 - t1
             avg_power = (p1 + p2) / 2.0
             total_energy += avg_power * dt
-        
+
         duration = samples[-1][0] - samples[0][0]
         powers = [p for _, p in samples]
-        
+
         return {
             'energy_j': total_energy,
             'avg_power_w': np.mean(powers),
@@ -220,7 +221,7 @@ class PowerMonitor:
 class CUDALayerTimer:
     """
     High-precision layer timer using CUDA events.
-    
+
     Uses PyTorch forward hooks to capture timing for each layer individually.
     """
 
@@ -262,8 +263,10 @@ class CUDALayerTimer:
                             self.layer_info[name]['padding'] = module.padding
 
                 # Register hooks
-                pre_hook = module.register_forward_pre_hook(self._create_pre_hook(name))
-                post_hook = module.register_forward_hook(self._create_post_hook(name))
+                pre_hook = module.register_forward_pre_hook(
+                    self._create_pre_hook(name))
+                post_hook = module.register_forward_hook(
+                    self._create_post_hook(name))
                 self.hooks.append(pre_hook)
                 self.hooks.append(post_hook)
 
@@ -295,9 +298,11 @@ class CUDALayerTimer:
                 end_event = torch.cuda.Event(enable_timing=True)
                 end_event.record()
                 torch.cuda.synchronize()
-                duration_ms = self.current_events[name]['start'].elapsed_time(end_event)
+                duration_ms = self.current_events[name]['start'].elapsed_time(
+                    end_event)
             else:
-                duration_ms = (time.time() - self.current_events[name]['start']) * 1000
+                duration_ms = (
+                    time.time() - self.current_events[name]['start']) * 1000
 
             self.layer_times[name].append(duration_ms)
             del self.current_events[name]
@@ -342,7 +347,7 @@ class CUDALayerTimer:
 class UnifiedProfiler:
     """
     Main profiler class that handles any model + algorithm combination.
-    
+
     Args:
         model_name: Name of model from MODEL_REGISTRY
         algorithm: Convolution algorithm to use
@@ -368,7 +373,7 @@ class UnifiedProfiler:
         self.batch_size = batch_size
         self.warmup_iters = warmup_iters
         self.measure_iters = measure_iters
-        
+
         # Generate input sizes
         min_size, max_size = input_size_range
         if num_sizes == 1:
@@ -378,7 +383,7 @@ class UnifiedProfiler:
                 min_size + int(i * (max_size - min_size) / (num_sizes - 1))
                 for i in range(num_sizes)
             ]
-        
+
         self.power_monitor = PowerMonitor()
         self.timer: Optional[CUDALayerTimer] = None
         self.model = None
@@ -398,7 +403,8 @@ class UnifiedProfiler:
         """Load model from registry and apply ai3 conversion"""
         if self.model_name not in MODEL_REGISTRY:
             available = list(MODEL_REGISTRY.keys())
-            raise ValueError(f"Unknown model: {self.model_name}. Available: {available}")
+            raise ValueError(
+                f"Unknown model: {self.model_name}. Available: {available}")
 
         print(f"\nLoading {self.model_name}...")
         self.model = MODEL_REGISTRY[self.model_name]()
@@ -406,8 +412,8 @@ class UnifiedProfiler:
         print(f"✓ {self.model_name} loaded")
 
         # Check cuDNN availability for algorithms that need it
-        cudnn_algorithms = ['gemm', 'implicit gemm', 'implicit precomp gemm', 
-                           'fft', 'fft tiling', 'winograd', 'winograd nonfused']
+        cudnn_algorithms = ['gemm', 'implicit gemm', 'implicit precomp gemm',
+                            'fft', 'fft tiling', 'winograd', 'winograd nonfused']
         if self.algorithm in cudnn_algorithms:
             if not ai3.using_cudnn():
                 raise RuntimeError(
@@ -421,9 +427,9 @@ class UnifiedProfiler:
 
         # Count converted layers
         conv_layers = sum(1 for _, m in self.model.named_modules()
-                         if isinstance(m, torch.nn.Conv2d) or hasattr(m, 'algorithm'))
+                          if isinstance(m, torch.nn.Conv2d) or hasattr(m, 'algorithm'))
         ai3_layers = sum(1 for _, m in self.model.named_modules()
-                        if hasattr(m, 'algorithm'))
+                         if hasattr(m, 'algorithm'))
 
         print(f"✓ Conversion completed:")
         print(f"  Total Conv2D layers: {conv_layers}")
@@ -433,7 +439,7 @@ class UnifiedProfiler:
 
     def _measure_overall(self, input_data: torch.Tensor) -> Dict[str, float]:
         """Measure overall model performance with power monitoring"""
-        
+
         # Warmup
         with torch.inference_mode():
             for _ in range(self.warmup_iters):
@@ -449,16 +455,16 @@ class UnifiedProfiler:
             for _ in range(self.measure_iters):
                 # Start power sampling
                 self.power_monitor.start_sampling(interval_ms=0.5)
-                
+
                 if self.use_cuda:
                     start_event = torch.cuda.Event(enable_timing=True)
                     end_event = torch.cuda.Event(enable_timing=True)
-                    
+
                     start_event.record()
                     _ = self.model(input_data)
                     end_event.record()
                     torch.cuda.synchronize()
-                    
+
                     duration_ms = start_event.elapsed_time(end_event)
                 else:
                     start = time.time()
@@ -467,7 +473,7 @@ class UnifiedProfiler:
 
                 # Stop power sampling
                 samples = self.power_monitor.stop_sampling()
-                
+
                 times.append(duration_ms)
                 if samples:
                     all_power_samples.extend(samples)
@@ -483,7 +489,8 @@ class UnifiedProfiler:
 
         # Add power statistics using trapezoidal rule
         if all_power_samples:
-            power_stats = self.power_monitor.compute_energy_trapezoidal(all_power_samples)
+            power_stats = self.power_monitor.compute_energy_trapezoidal(
+                all_power_samples)
             stats.update({
                 'power_mean_w': power_stats['avg_power_w'],
                 'power_std_w': power_stats['power_std_w'],
@@ -521,22 +528,24 @@ class UnifiedProfiler:
     def run(self, output_dir: str = "./results") -> Dict:
         """
         Run the full profiling pipeline.
-        
+
         Args:
             output_dir: Directory to save results
-            
+
         Returns:
             Dictionary with 'overall' and 'layers' results
         """
         print("=" * 70)
-        print(f"UNIFIED PROFILER: {self.model_name.upper()} + {self.algorithm.upper()}")
+        print(
+            f"UNIFIED PROFILER: {self.model_name.upper()} + {self.algorithm.upper()}")
         print("=" * 70)
 
         print(f"\nConfiguration:")
         print(f"  Model: {self.model_name}")
         print(f"  Algorithm: {self.algorithm}")
         print(f"  Batch size: {self.batch_size}")
-        print(f"  Input sizes: {len(self.input_sizes)} ({self.input_sizes[0]} to {self.input_sizes[-1]})")
+        print(
+            f"  Input sizes: {len(self.input_sizes)} ({self.input_sizes[0]} to {self.input_sizes[-1]})")
         print(f"  Warmup iterations: {self.warmup_iters}")
         print(f"  Measurement iterations: {self.measure_iters}")
 
@@ -564,7 +573,8 @@ class UnifiedProfiler:
         print(f"{'='*70}")
 
         for idx, input_size in enumerate(self.input_sizes, 1):
-            print(f"\n[{idx}/{len(self.input_sizes)}] Input size: {input_size}x{input_size}")
+            print(
+                f"\n[{idx}/{len(self.input_sizes)}] Input size: {input_size}x{input_size}")
 
             if self.use_cuda:
                 torch.cuda.empty_cache()
@@ -572,7 +582,8 @@ class UnifiedProfiler:
 
             # Create input
             try:
-                input_data = torch.randn(self.batch_size, 3, input_size, input_size)
+                input_data = torch.randn(
+                    self.batch_size, 3, input_size, input_size)
                 print(f"  ✓ Input tensor: {tuple(input_data.shape)}")
             except Exception as e:
                 print(f"  ✗ Error creating input: {e}")
@@ -581,11 +592,14 @@ class UnifiedProfiler:
             # Measure overall
             try:
                 overall_stats = self._measure_overall(input_data)
-                print(f"  ✓ Time: {overall_stats['mean']:.2f}ms ± {overall_stats['std']:.2f}ms")
-                
+                print(
+                    f"  ✓ Time: {overall_stats['mean']:.2f}ms ± {overall_stats['std']:.2f}ms")
+
                 if 'power_mean_w' in overall_stats:
-                    print(f"  ✓ Power: {overall_stats['power_mean_w']:.2f}W (trapezoidal, {overall_stats.get('power_samples', 'N/A')} samples)")
-                    print(f"  ✓ Energy: {overall_stats.get('energy_per_inference_j', 0):.4f}J per inference")
+                    print(
+                        f"  ✓ Power: {overall_stats['power_mean_w']:.2f}W (trapezoidal, {overall_stats.get('power_samples', 'N/A')} samples)")
+                    print(
+                        f"  ✓ Energy: {overall_stats.get('energy_per_inference_j', 0):.4f}J per inference")
 
                 overall_results.append({
                     'model': self.model_name,
@@ -609,12 +623,13 @@ class UnifiedProfiler:
                 # Top 3 slowest layers
                 if layer_stats:
                     sorted_layers = sorted(layer_stats.items(),
-                                          key=lambda x: x[1]['mean'],
-                                          reverse=True)[:3]
+                                           key=lambda x: x[1]['mean'],
+                                           reverse=True)[:3]
                     print(f"  Top 3 slowest layers:")
                     for layer_name, stats in sorted_layers:
                         pct = (stats['mean'] / overall_stats['mean']) * 100
-                        print(f"    {layer_name}: {stats['mean']:.2f}ms ({pct:.1f}%)")
+                        print(
+                            f"    {layer_name}: {stats['mean']:.2f}ms ({pct:.1f}%)")
 
                     # Store layer results
                     for layer_name, stats in layer_stats.items():

@@ -28,3 +28,12 @@ Performance_Prediction/**/*.csv
 
 # Virtual environment (additional name)
 ai3_8cudnn/
+
+
+# Overall Results (data files)
+Overall_Results/
+
+# Performance Prediction Refactored (data files)
+Performance_Prediction_Refactored/**/*.csv
+Performance_Prediction_Refactored/**/results/
+Performance_Prediction_Refactored/results copy/

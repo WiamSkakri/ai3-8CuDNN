@@ -1,0 +1,2 @@
+model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
+densenet121,guess,1,224,224.47100448608398,126.02978897094727,98.44121551513672,350.50079345703125,224.47100448608398,53.2404,2.5679054967034896,48.49,55.911,18.495257778747007,9.247628889373503,5

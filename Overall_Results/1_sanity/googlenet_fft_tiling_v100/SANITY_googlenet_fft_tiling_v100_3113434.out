@@ -1,0 +1,80 @@
+==========================================
+Job ID: 3113434
+Node: gput055
+Model: googlenet
+Algorithm: fft tiling
+GPU Constraint: gpu4v100
+Start Time: Wed Feb  4 13:01:47 EST 2026
+==========================================
+Wed Feb  4 13:01:47 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.158.01             Driver Version: 570.158.01     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Tesla V100-SXM2-32GB           On  |   00000000:86:00.0 Off |                    0 |
+| N/A   35C    P0             39W /  300W |       0MiB /  32768MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+⚡ TEST MODE: 1 input size, 2 iterations
+✓ Power monitoring initialized (current: 54.56W)
+======================================================================
+UNIFIED PROFILER: GOOGLENET + FFT TILING
+======================================================================
+
+Configuration:
+  Model: googlenet
+  Algorithm: fft tiling
+  Batch size: 1
+  Input sizes: 1 (224 to 224)
+  Warmup iterations: 1
+  Measurement iterations: 2
+
+Loading googlenet...
+✓ googlenet loaded
+Applying ai3 'fft tiling' algorithm conversion...
+✓ Conversion completed:
+  Total Conv2D layers: 57
+  AI3 converted layers: 57
+  Conversion rate: 100.0%
+
+✓ CUDA available: Tesla V100-SXM2-32GB
+  cuDNN version: 90600
+
+======================================================================
+STARTING PROFILING
+======================================================================
+
+[1/1] Input size: 224x224
+  ✓ Input tensor: (1, 3, 224, 224)
+  ✓ Time: 89.84ms ± 3.38ms
+  ✓ Power: 68.54W (trapezoidal, 3 samples)
+  ✓ Energy: 3.1487J per inference
+  Top 3 slowest layers:
+    conv1.conv: 3.36ms (3.7%)
+    inception5b.branch2.1.conv: 3.25ms (3.6%)
+    conv3.conv: 2.02ms (2.3%)
+
+✓ Overall results: results/1_sanity/googlenet_fft_tiling_v100/googlenet_fft_tiling_overall.csv
+✓ Layer results: results/1_sanity/googlenet_fft_tiling_v100/googlenet_fft_tiling_layers.csv
+
+======================================================================
+PROFILING COMPLETED
+======================================================================
+  ✓ 1 input sizes profiled
+  ✓ 57 layer measurements
+  ✓ Results saved to: results/1_sanity/googlenet_fft_tiling_v100
+==========================================
+End Time: Wed Feb  4 13:02:03 EST 2026
+Exit Code: 0
+==========================================

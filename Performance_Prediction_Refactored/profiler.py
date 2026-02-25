@@ -641,7 +641,9 @@ class UnifiedProfiler:
                             'layer': layer_name,
                             'in_channels': info.get('in_channels', 'N/A'),
                             'out_channels': info.get('out_channels', 'N/A'),
-                            'kernel_size': str(info.get('kernel_size', 'N/A')),
+                            'kernel_size': to_single_value(info.get('kernel_size', 'N/A')),
+                            'stride': to_single_value(info.get('stride', 1)),
+                            'padding': to_single_value(info.get('padding', 0)),
                             'mean_ms': stats['mean'],
                             'std_ms': stats['std'],
                             'percentage': (stats['mean'] / overall_stats['mean']) * 100
@@ -698,6 +700,26 @@ class UnifiedProfiler:
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
+def to_single_value(val):
+    """
+    Convert tuple values to single integers for CSV output.
+    
+    Examples:
+        (3, 3) -> 3
+        (3, 5) -> '3x5'
+        3 -> 3
+        'N/A' -> 'N/A'
+    """
+    if isinstance(val, tuple):
+        if len(val) == 2 and val[0] == val[1]:
+            return val[0]  # (3, 3) -> 3
+        elif len(val) == 2:
+            return f"{val[0]}x{val[1]}"  # (3, 5) -> "3x5"
+        elif len(val) == 1:
+            return val[0]
+    return val
+
+
 def print_cuda_info():
     """Print CUDA device information"""
     if not torch.cuda.is_available():

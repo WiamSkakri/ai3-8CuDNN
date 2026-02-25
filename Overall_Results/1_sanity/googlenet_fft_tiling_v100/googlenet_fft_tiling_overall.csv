@@ -1,0 +1,2 @@
+model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
+googlenet,fft tiling,1,224,89.83705520629883,3.379711151123047,86.45734405517578,93.21676635742188,89.83705520629883,68.53666666666668,5.737029099533039,61.246,75.265,6.29741030581668,3.14870515290834,3

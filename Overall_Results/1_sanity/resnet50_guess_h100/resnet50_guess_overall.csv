@@ -1,0 +1,2 @@
+model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
+resnet50,guess,1,224,71.26308822631836,1.2751502990722656,69.9879379272461,72.53823852539062,71.26308822631836,82.11766666666666,1.3727299645434803,81.147,84.059,11.783064974695446,5.891532487347723,3

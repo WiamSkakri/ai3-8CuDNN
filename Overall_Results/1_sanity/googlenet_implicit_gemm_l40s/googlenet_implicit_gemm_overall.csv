@@ -1,0 +1,2 @@
+model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
+googlenet,implicit gemm,1,224,52.02952003479004,0.3777751922607422,51.6517448425293,52.40729522705078,52.02952003479004,48.9585,0.883499999999998,48.075,49.842,4.289468502055854,2.144734251027927,4

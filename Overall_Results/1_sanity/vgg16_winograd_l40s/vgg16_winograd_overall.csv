@@ -1,0 +1,2 @@
+model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
+vgg16,winograd,1,224,40.91543960571289,0.6282081604003906,40.2872314453125,41.54364776611328,40.91543960571289,57.421,0.0,57.421,57.421,2.332240538787097,1.1661202693935484,2

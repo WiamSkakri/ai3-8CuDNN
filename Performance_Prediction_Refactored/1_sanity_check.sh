@@ -77,7 +77,7 @@ sbatch <<EOF
 #SBATCH --job-name=$JOB_NAME
 #SBATCH --output=$SCRIPT_DIR/$RESULTS_DIR/%x_%j.out
 #SBATCH --error=$SCRIPT_DIR/$RESULTS_DIR/%x_%j.err
-#SBATCH --time=00:15:00
+#SBATCH --time=1:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4

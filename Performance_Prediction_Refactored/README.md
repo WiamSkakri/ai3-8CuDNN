@@ -1,4 +1,4 @@
-# Performance Prediction - Refactored
+# Performance Prediction 
 
 A unified GPU performance profiling system for the ai3 library. This refactored version consolidates all model/algorithm combinations into a single, reusable codebase.
 

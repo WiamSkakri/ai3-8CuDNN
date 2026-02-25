@@ -1,0 +1,2 @@
+model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
+vgg16,fft tiling,1,224,299.8276824951172,137.0608367919922,162.766845703125,436.8885192871094,299.8276824951172,87.81185714285714,4.309525589686558,83.538,96.924,54.26470480998977,27.132352404994887,35

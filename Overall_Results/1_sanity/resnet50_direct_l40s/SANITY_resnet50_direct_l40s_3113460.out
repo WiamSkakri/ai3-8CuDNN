@@ -1,0 +1,49 @@
+==========================================
+Job ID: 3113460
+Node: gput066
+Model: resnet50
+Algorithm: direct
+GPU Constraint: gpul40s
+Start Time: Wed Feb  4 13:13:48 EST 2026
+==========================================
+Wed Feb  4 13:13:48 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.158.01             Driver Version: 570.158.01     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA L40S                    On  |   00000000:E1:00.0 Off |                    0 |
+| N/A   24C    P8             33W /  350W |       0MiB /  46068MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+⚡ TEST MODE: 1 input size, 2 iterations
+✓ Power monitoring initialized (current: 33.97W)
+======================================================================
+UNIFIED PROFILER: RESNET50 + DIRECT
+======================================================================
+
+Configuration:
+  Model: resnet50
+  Algorithm: direct
+  Batch size: 1
+  Input sizes: 1 (224 to 224)
+  Warmup iterations: 1
+  Measurement iterations: 2
+
+Loading resnet50...
+
+✗ Error: [Errno 116] Stale file handle
+==========================================
+End Time: Wed Feb  4 13:14:05 EST 2026
+Exit Code: 1
+==========================================

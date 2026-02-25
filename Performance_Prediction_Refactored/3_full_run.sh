@@ -99,8 +99,8 @@ echo "=========================================="
 nvidia-smi
 
 # Activate environment
-source ~/.bashrc
-conda activate ai3_8cudnn
+
+source /home/wxs428/ai3-8CuDNN/ai3_8cudnn/bin/activate
 
 # Change to script directory
 cd $SCRIPT_DIR

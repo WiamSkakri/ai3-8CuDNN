@@ -1,0 +1,2 @@
+model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
+resnet50,implicit precomp gemm,1,224,60.77128028869629,0.7648792266845703,60.00640106201172,61.53615951538086,60.77128028869629,52.715666666666664,0.7740462231388722,51.621,53.263,3.8884374085143207,1.9442187042571604,3

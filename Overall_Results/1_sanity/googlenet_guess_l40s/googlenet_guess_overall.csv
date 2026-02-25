@@ -1,0 +1,2 @@
+model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
+googlenet,guess,1,224,50.13555145263672,0.606719970703125,49.528831481933594,50.742271423339844,50.13555145263672,47.282250000000005,4.579109322510221,39.351,49.926,3.64365064410679,1.821825322053395,4

@@ -1,0 +1,2 @@
+model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
+alexnet,guess,1,224,15.342080116271973,0.21862411499023438,15.123456001281738,15.560704231262207,15.342080116271973,55.908500000000004,0.19485571585149994,55.571,56.021,1.5678450210280719,0.7839225105140359,4

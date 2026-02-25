@@ -1,0 +1,2 @@
+model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
+alexnet,implicit gemm,1,224,15.189504146575928,0.24115228652954102,14.948351860046387,15.430656433105469,15.189504146575928,56.021,0.34365389565666254,55.535,56.507,1.6237108352929353,0.8118554176464676,4

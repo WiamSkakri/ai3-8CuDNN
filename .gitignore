@@ -35,5 +35,5 @@ Overall_Results/
 
 # Performance Prediction Refactored (data files)
 Performance_Prediction_Refactored/**/*.csv
-Performance_Prediction_Refactored/**/results/
-Performance_Prediction_Refactored/results copy/
+Performance_Prediction_Refactored/results/
+Performance_Prediction_Refactored/results_copy/

@@ -1,2 +1,0 @@
-model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
-vgg16,gemm,1,224,65.98127746582031,1.00067138671875,64.98060607910156,66.98194885253906,65.98127746582031,90.555,2.1589935927031663,88.415,95.223,11.317015565797686,5.658507782898843,6

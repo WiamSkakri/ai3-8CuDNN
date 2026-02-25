@@ -1,2 +1,0 @@
-model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
-vgg16,guess,1,224,43.35308837890625,0.2600975036621094,43.09299087524414,43.61318588256836,43.35308837890625,64.74733333333333,0.6500668341708283,63.828,65.207,3.6482070877216755,1.8241035438608377,3

@@ -1,2 +1,0 @@
-model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
-densenet121,implicit precomp gemm,1,224,81.4446907043457,0.3036003112792969,81.1410903930664,81.748291015625,81.4446907043457,76.41,1.3053191180703694,74.564,77.333,7.228572125295177,3.6142860626475883,3

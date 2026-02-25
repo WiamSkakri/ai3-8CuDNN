@@ -1,6 +1,0 @@
-model,algorithm,input_size,layer,in_channels,out_channels,kernel_size,mean_ms,std_ms,percentage
-alexnet,implicit precomp gemm,224,features.0,3,64,"(11, 11)",0.5560320019721985,0.038879990577697754,4.78713288382396
-alexnet,implicit precomp gemm,224,features.3,64,192,"(5, 5)",0.7609599828720093,0.011424005031585693,6.551451255251408
-alexnet,implicit precomp gemm,224,features.6,192,384,"(3, 3)",0.9390719830989838,0.008096009492874146,8.084898629262161
-alexnet,implicit precomp gemm,224,features.8,384,256,"(3, 3)",0.9576959908008575,0.005567997694015503,8.245241198362507
-alexnet,implicit precomp gemm,224,features.10,256,256,"(3, 3)",0.8230240046977997,0.014448016881942749,7.085788701173207

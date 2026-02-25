@@ -1,2 +1,0 @@
-model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
-densenet121,fft tiling,1,224,86.32210922241211,1.9391365051269531,84.38297271728516,88.26124572753906,86.32210922241211,76.908,1.4283556979968266,75.898,78.928,8.792256063949315,4.396128031974658,6

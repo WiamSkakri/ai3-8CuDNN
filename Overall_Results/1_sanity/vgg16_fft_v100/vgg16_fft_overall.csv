@@ -1,2 +1,0 @@
-model,algorithm,batch_size,input_size,mean,std,min,max,median,power_mean_w,power_std_w,power_min_w,power_max_w,energy_total_j,energy_per_inference_j,power_samples
-vgg16,fft,1,224,261.06419372558594,32.19200134277344,228.8721923828125,293.2561950683594,261.06419372558594,95.89634375,11.167858192177492,70.025,125.034,50.39259950780683,25.196299753903414,64

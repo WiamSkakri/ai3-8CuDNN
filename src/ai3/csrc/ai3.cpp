@@ -169,7 +169,7 @@ class AdaptiveAvgPool2D : virtual public Layer {
 
 class ReLU : virtual public Layer {
   public:
-    ReLU(const std::string algorithm) : algorithm(algorithm){};
+    ReLU(const std::string algorithm) : algorithm(algorithm) {};
 
     FORWARD_ALIASES
 
@@ -338,8 +338,20 @@ class Conv2D : virtual public Layer {
             return conv2d::gemm<dtype>(
                 std::move(input), weight, bias, padding_h, padding_w, stride_h,
                 stride_w, dilation_h, dilation_w, padding_mode, groups);
+        } else if (algorithm == "fft") {
+            return conv2d::fft<dtype>(std::move(input), weight, bias, padding_h,
+                                      padding_w, stride_h, stride_w, dilation_h,
+                                      dilation_w, padding_mode, groups);
+        } else if (algorithm == "fft tiling") {
+            return conv2d::fft_tiling<dtype>(
+                std::move(input), weight, bias, padding_h, padding_w, stride_h,
+                stride_w, dilation_h, dilation_w, padding_mode, groups);
         } else if (algorithm == "winograd") {
             return conv2d::winograd<dtype>(
+                std::move(input), weight, bias, padding_h, padding_w, stride_h,
+                stride_w, dilation_h, dilation_w, padding_mode, groups);
+        } else if (algorithm == "winograd nonfused") {
+            return conv2d::winograd_nonfused<dtype>(
                 std::move(input), weight, bias, padding_h, padding_w, stride_h,
                 stride_w, dilation_h, dilation_w, padding_mode, groups);
         } else if (algorithm == "guess") {

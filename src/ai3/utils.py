@@ -22,8 +22,8 @@ TORCH_MODULE_TYPE_STR = 'torch.nn.modules.module.Module'
 AlgorithmicSelector = Union[str, Sequence[str], Callable]
 
 SUPPORTED_ALGORITHMS = {
-    'conv2d': ['direct', 'smm', 'winograd', 'gemm',
-               'implicit gemm', 'implicit precomp gemm',
+    'conv2d': ['direct', 'smm', 'winograd', 'winograd nonfused', 'gemm',
+               'implicit gemm', 'implicit precomp gemm', 'fft', 'fft tiling',
                'guess', 'mps', 'metal'],
     'linear': ['gemm'],
     'maxpool2d': ['direct'],

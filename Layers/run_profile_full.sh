@@ -42,6 +42,7 @@ ALGO_SAFE="${ALGO// /_}"
 JOB_NAME="v2_${MODEL}_${ALGO_SAFE}_${GPU}"
 RESULTS_DIR="results/${MODEL}_${ALGO_SAFE}_${GPU}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo "=============================================="
 echo "v2 PROFILER: FULL RUN (100 input sizes)"
@@ -77,7 +78,7 @@ echo "Start: \$(date)"
 
 nvidia-smi
 
-source /home/wxs428/ai3-8CuDNN/ai3_8cudnn/bin/activate
+source "$REPO_ROOT/venv/bin/activate"
 
 cd $SCRIPT_DIR
 

@@ -21,9 +21,10 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$SCRIPT_DIR"
 
-source /home/wxs428/ai3-8CuDNN/ai3_8cudnn/bin/activate
+source "$REPO_ROOT/venv/bin/activate"
 
 echo "=============================================="
 echo "TRAINING ALL PREDICTORS"

@@ -174,20 +174,21 @@ class PowerMonitor:
     # ------------------------------------------------------------------
     # Pattern 2: continuous sampling (used by _measure_layers)
     # ------------------------------------------------------------------
-    def start_continuous_sampling(self, interval_ms: float = 0.1):
+    def start_continuous_sampling(self, interval_ms: float = 0.02):
         """
         Start a long-running background sampling thread.
 
         Runs across many iterations so per-layer timestamps can be matched
         to power readings after the fact via slice_samples().
 
-        Default interval_ms=0.1 (100 us between polls) improves alignment with
-        short layers; OS may still quantize sleep.
+        Default interval_ms=0.02 (~20 us between polls, requested; OS may
+        quantize ``time.sleep`` to coarser resolution).
         """
         if not self.enabled:
             return
         self._continuous_samples = []
         self._sampling = True
+        sleep_sec = max(interval_ms / 1000.0, 1e-6)
 
         def sample_loop():
             while self._sampling:
@@ -195,7 +196,7 @@ class PowerMonitor:
                 if power is not None:
                     self._continuous_samples.append(
                         (time.perf_counter(), power))
-                time.sleep(interval_ms / 1000.0)
+                time.sleep(sleep_sec)
 
         self._sample_thread = threading.Thread(target=sample_loop, daemon=True)
         self._sample_thread.start()
@@ -534,12 +535,14 @@ class UnifiedProfiler:
         warmup_iters: int = 10,
         measure_iters: int = 20,
         input_size_range: Tuple[int, int] = (224, 512),
+        layer_nvml_interval_ms: float = 0.02,
     ):
         self.model_name = model_name.lower()
         self.algorithm = algorithm.lower()
         self.batch_size = batch_size
         self.warmup_iters = warmup_iters
         self.measure_iters = measure_iters
+        self.layer_nvml_interval_ms = layer_nvml_interval_ms
 
         min_size, max_size = input_size_range
         if num_sizes == 1:
@@ -554,8 +557,6 @@ class UnifiedProfiler:
         self.timer: Optional[CUDALayerTimer] = None
         self.model = None
         self.use_cuda = torch.cuda.is_available()
-        # NVML poll interval (ms) while measuring per-layer power
-        self.layer_nvml_interval_ms: float = 0.1
 
     def _check_compatibility(self):
         if self.algorithm in ALGORITHM_COMPATIBILITY:
@@ -730,6 +731,9 @@ class UnifiedProfiler:
             f"({self.input_sizes[0]} to {self.input_sizes[-1]})")
         print(f"  Warmup iterations: {self.warmup_iters}")
         print(f"  Measurement iterations: {self.measure_iters}")
+        print(
+            f"  Per-layer NVML interval: {self.layer_nvml_interval_ms} ms "
+            f"(requested; OS may quantize sleep)")
 
         self._check_compatibility()
         self._load_model()

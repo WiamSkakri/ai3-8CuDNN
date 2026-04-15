@@ -58,6 +58,14 @@ Examples:
     parser.add_argument('--min-size', type=int, default=224)
     parser.add_argument('--max-size', type=int, default=512)
     parser.add_argument('--output-dir', '-o', type=str, default='./results')
+    parser.add_argument(
+        '--layer-nvml-interval-ms',
+        type=float,
+        default=0.02,
+        metavar='MS',
+        help='Milliseconds between NVML polls during per-layer measurement '
+             '(smaller → more samples, more host CPU; default 0.02)',
+    )
 
     parser.add_argument('--list-models', action='store_true')
     parser.add_argument('--list-algorithms', action='store_true')
@@ -85,6 +93,9 @@ Examples:
 
     if not args.model or not args.algorithm:
         parser.error("--model and --algorithm are required")
+
+    if args.layer_nvml_interval_ms <= 0:
+        parser.error("--layer-nvml-interval-ms must be positive")
 
     model_name = args.model.lower()
     algorithm = args.algorithm.lower()
@@ -131,6 +142,7 @@ Examples:
             warmup_iters=warmup,
             measure_iters=measure,
             input_size_range=(args.min_size, args.max_size),
+            layer_nvml_interval_ms=args.layer_nvml_interval_ms,
         )
         profiler.run(output_dir=args.output_dir)
         return 0

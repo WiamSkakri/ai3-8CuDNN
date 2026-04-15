@@ -1,0 +1,132 @@
+================================================================================
+DESIGN NOTES -- v2 Profiler (Layers/profiler.py)
+For paper writing reference
+================================================================================
+
+1. WHY WE NEED PER-LAYER ENERGY MEASUREMENT
+--------------------------------------------------------------------------------
+The original profiler (v1) measures power/energy only at the OVERALL model
+level: it starts an NVML sampling thread before a full forward pass and stops
+it after. This gives energy_per_inference_j for the whole model, but tells us
+nothing about which layers consume the most energy.
+
+To build a layer-level energy predictor, we need energy attributed to each
+individual convolution layer. NVML (nvidia-ml-py3) is the only way to read GPU
+power draw from software -- there is no per-kernel hardware energy counter.
+
+2. THE CORE DESIGN PROBLEM: TWO INCOMPATIBLE TIMELINES
+--------------------------------------------------------------------------------
+CUDA events (used for layer timing) live on the GPU timeline. They are markers
+in the GPU's command queue and measure GPU-side elapsed time with high
+precision (~microsecond). But they have NO connection to wall-clock time.
+
+NVML power readings live on the CPU timeline. Each sample is tagged with
+time.perf_counter() -- a CPU wall-clock timestamp. NVML has no concept of
+"which GPU kernel is running right now."
+
+To attribute power samples to a specific layer, we need to know WHEN (in
+wall-clock time) each layer was executing, so we can slice the power stream.
+
+3. THE DESIGN CHOICE: CONTINUOUS SAMPLING + TIMESTAMP MARKERS
+--------------------------------------------------------------------------------
+Option A (rejected): Start/stop a sampling thread per layer per iteration.
+  - For VGG16: 13 layers x 20 iterations = 260 thread create/join cycles
+    per input size.
+  - Thread creation overhead (~50-100us each) would significantly pollute
+    timing measurements.
+  - The start/stop gaps between layers would miss power samples.
+
+Option B (chosen): One continuous background sampling thread + wall-clock
+timestamp markers in the forward hooks.
+  - A single thread runs for the entire measurement phase, sampling power
+    every 0.5ms.
+  - The pre-hook records wall_start = time.perf_counter() before the layer.
+  - The post-hook records wall_end = time.perf_counter() after the layer.
+  - After all iterations, we slice the continuous power stream per layer
+    using these [wall_start, wall_end] windows.
+  - Energy per layer = trapezoidal integration of the sliced power samples.
+
+This is far less intrusive than Option A and produces a gapless power trace.
+
+4. WHAT THIS ADDS TO THE HOOKS (AND WHY IT AFFECTS TIMING SLIGHTLY)
+--------------------------------------------------------------------------------
+The v1 pre-hook does:
+  1. Create CUDA start event
+  2. Record start event
+  3. Store in dict
+
+The v2 pre-hook adds:
+  -> time.perf_counter()              (one syscall, ~50-200 nanoseconds)
+  -> Store wall_start in the dict     (one extra dict key)
+
+The v1 post-hook does:
+  1. Create CUDA end event
+  2. Record end event
+  3. torch.cuda.synchronize()
+  4. Compute elapsed time
+  5. Append to list
+
+The v2 post-hook adds:
+  -> time.perf_counter()              (one syscall, ~50-200 nanoseconds)
+  -> Append (wall_start, wall_end) tuple to layer_timestamps list
+
+Additionally, the v2 _measure_layers() method runs a background NVML sampling
+thread (CPU-side, polling every 0.5ms).
+
+5. WHY THE TIMING IMPACT IS NEGLIGIBLE
+--------------------------------------------------------------------------------
+The ACTUAL layer timing measurement is identical in v1 and v2: it uses the
+same CUDA event pair (start_event.record() ... end_event.record()). CUDA
+events measure GPU-side elapsed time, which is independent of what the CPU
+does between recording them. The GPU processes its command queue regardless
+of CPU-side Python overhead.
+
+The added CPU operations (two perf_counter calls + a list append) total
+roughly 0.5-1 microsecond per layer. For layers that take 0.5-5ms, this is
+0.02-0.2% overhead -- well within measurement noise.
+
+The background NVML thread runs on the CPU and does not issue any GPU
+commands, so it cannot affect GPU kernel execution time.
+
+The only theoretical concern: the torch.cuda.synchronize() in the post-hook
+forces the CPU to wait for the GPU. If CPU-side overhead delays when the
+NEXT layer's pre-hook fires, it could slightly delay the next CUDA kernel
+launch. In practice this is negligible because:
+  - The synchronize() was already there in v1 (same behavior).
+  - The added CPU work after synchronize (~0.5us) is tiny compared to
+    Python's own hook dispatch overhead.
+
+BOTTOM LINE: The mean_ms values from v2 should be statistically
+indistinguishable from v1. Any difference would appear as marginally higher
+variance (std_ms), not a systematic shift in the mean.
+
+6. NVML SAMPLING RATE LIMITATION
+--------------------------------------------------------------------------------
+NVML updates power readings at roughly 1ms intervals (hardware-dependent).
+With our 0.5ms polling interval, we effectively sample at ~1ms resolution.
+
+For fast layers (< 1ms), there may be 0 or 1 power samples in the layer's
+time window. In these cases, the per-layer energy estimate is unreliable.
+
+Mitigation: we aggregate power samples across all 20 measurement iterations
+for each layer. Even if one iteration captures 0-1 samples, across 20
+iterations we accumulate enough for a reasonable estimate. The power_samples
+count in the output CSV allows filtering out low-confidence measurements
+during ML training.
+
+This is a known limitation worth discussing in the paper.
+
+7. TRAPEZOIDAL RULE FOR ENERGY
+--------------------------------------------------------------------------------
+Energy = integral of Power over time.
+
+We approximate this with the trapezoidal rule:
+  E = sum_i [ (P_i + P_{i+1}) / 2 ] * (t_{i+1} - t_i)
+
+This is the same method used in the v1 profiler for overall energy and is
+standard practice in GPU energy measurement literature. It is more accurate
+than simple rectangular integration when power varies during computation.
+
+================================================================================
+END OF DESIGN NOTES
+================================================================================

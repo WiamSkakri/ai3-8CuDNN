@@ -37,3 +37,6 @@ Overall_Results/
 Performance_Prediction_Refactored/**/*.csv
 Performance_Prediction_Refactored/results/
 Performance_Prediction_Refactored/results_copy/
+
+plans/
+to-note.txt

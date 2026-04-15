@@ -122,7 +122,7 @@ def evaluate_layer_energy():
 
     drop_cols = ['model', 'layer', 'mean_ms', 'std_ms', 'percentage',
                  'power_mean_w', 'power_std_w', 'power_samples',
-                 'energy_per_layer_j']
+                 'energy_per_layer_j', 'energy_attribution']
     X = df.drop(columns=[c for c in drop_cols if c in df.columns])
     X = add_layer_features(X)
 

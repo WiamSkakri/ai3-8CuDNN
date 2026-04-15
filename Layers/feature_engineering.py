@@ -222,7 +222,8 @@ def load_layer_data(
             df = df.drop(columns=[col])
 
     energy_cols = ['power_mean_w', 'power_std_w',
-                   'energy_per_layer_j', 'power_samples']
+                   'energy_per_layer_j', 'power_samples',
+                   'energy_attribution']
     energy_data = {}
     for col in energy_cols:
         if col in df.columns:

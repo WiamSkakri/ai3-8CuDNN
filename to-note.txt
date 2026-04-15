@@ -127,6 +127,27 @@ This is the same method used in the v1 profiler for overall energy and is
 standard practice in GPU energy measurement literature. It is more accurate
 than simple rectangular integration when power varies during computation.
 
+8. HYBRID LAYER ENERGY (post sparse-NVML fix)
+--------------------------------------------------------------------------------
+When NVML samples inside a layer window are too few, per-layer energy was
+often zero. The v2 profiler was updated to:
+
+  - Poll NVML faster during layer measurement (default 0.1 ms between reads;
+    OS may still quantize sleep).
+
+  - Hybrid rule: >=2 samples -> trapezoidal (attribution: nvml_trapezoid);
+    exactly 1 sample -> E = P * wall_span (attribution: nvml_single_sample),
+    where wall_span is sum of hook (wall_start, wall_end) intervals across
+    measurement iterations.
+
+  - Fallback when energy is still <= 0 and overall energy_per_inference_j is
+    available: allocate by layer time fraction
+      E_layer = E_inference * (mean_ms_layer / sum_conv_mean_ms)
+    (attribution: proportional_overall). Document in paper as an attribution
+    proxy when direct NVML slicing is empty.
+
+  - CSV column energy_attribution records which path was used.
+
 ================================================================================
 END OF DESIGN NOTES
 ================================================================================

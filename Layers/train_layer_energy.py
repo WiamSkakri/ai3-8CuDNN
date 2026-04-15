@@ -180,7 +180,8 @@ def main():
     y = np.log1p(df.pop(TARGET_COL))
 
     drop_cols = ['mean_ms', 'std_ms', 'percentage',
-                 'power_mean_w', 'power_std_w', 'power_samples']
+                 'power_mean_w', 'power_std_w', 'power_samples',
+                 'energy_attribution']
     for col in drop_cols:
         if col in df.columns:
             df = df.drop(columns=[col])

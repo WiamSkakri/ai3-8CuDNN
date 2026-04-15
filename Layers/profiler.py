@@ -10,8 +10,11 @@ Features:
 - CUDA event-based precise timing
 - Per-layer AND overall power monitoring via NVML (pynvml)
 - Continuous background power sampling with per-layer timestamp slicing
-- Trapezoidal rule for accurate energy integration
-- Layer-level CSV now includes power_mean_w, energy_per_layer_j, power_samples
+- Trapezoidal rule for accurate energy integration when enough NVML samples exist
+- Hybrid rule: 1 sample uses E ~= P * wall_duration; 0 samples fall back to
+  proportional allocation from overall energy_per_inference_j
+- Faster default NVML polling during layer measurement (configurable)
+- Layer-level CSV: power_mean_w, energy_per_layer_j, power_samples, energy_attribution
 - CSV output for analysis
 
 Usage:
@@ -171,12 +174,15 @@ class PowerMonitor:
     # ------------------------------------------------------------------
     # Pattern 2: continuous sampling (used by _measure_layers)
     # ------------------------------------------------------------------
-    def start_continuous_sampling(self, interval_ms: float = 0.5):
+    def start_continuous_sampling(self, interval_ms: float = 0.1):
         """
         Start a long-running background sampling thread.
 
         Runs across many iterations so per-layer timestamps can be matched
         to power readings after the fact via slice_samples().
+
+        Default interval_ms=0.1 (100 us between polls) improves alignment with
+        short layers; OS may still quantize sleep.
         """
         if not self.enabled:
             return
@@ -206,9 +212,55 @@ class PowerMonitor:
         all_samples: List[Tuple[float, float]],
         t_start: float,
         t_end: float,
+        eps: float = 1e-7,
     ) -> List[Tuple[float, float]]:
-        """Return the subset of samples whose timestamp falls in [t_start, t_end]."""
-        return [(t, p) for t, p in all_samples if t_start <= t <= t_end]
+        """Return samples whose timestamp falls in [t_start, t_end] (with tiny eps)."""
+        lo = t_start - eps
+        hi = t_end + eps
+        return [(t, p) for t, p in all_samples if lo <= t <= hi]
+
+    def compute_layer_energy_hybrid(
+        self,
+        samples: List[Tuple[float, float]],
+        ts_list: List[Tuple[float, float]],
+    ) -> Tuple[Dict[str, float], str]:
+        """
+        Per-layer energy from NVML samples + hook wall-clock spans.
+
+        - len(samples) >= 2: trapezoidal integration (nvml_trapezoid)
+        - len(samples) == 1: E = P * wall_duration (nvml_single_sample)
+        - len(samples) == 0: zeros, attribution 'none' (caller may fallback)
+
+        wall_duration is sum of (t_end - t_start) across measurement iterations.
+        """
+        wall_duration_s = sum(
+            max(0.0, te - ts) for ts, te in ts_list
+        )
+        n = len(samples)
+        if n >= 2:
+            out = self.compute_energy_trapezoidal(samples)
+            return out, 'nvml_trapezoid'
+        if n == 1:
+            p = samples[0][1]
+            energy_j = p * wall_duration_s if wall_duration_s > 0 else 0.0
+            return {
+                'energy_j': energy_j,
+                'avg_power_w': p,
+                'power_std_w': 0.0,
+                'power_min_w': p,
+                'power_max_w': p,
+                'duration_s': wall_duration_s,
+                'num_samples': 1,
+            }, 'nvml_single_sample'
+        return {
+            'energy_j': 0.0,
+            'avg_power_w': 0.0,
+            'power_std_w': 0.0,
+            'power_min_w': 0.0,
+            'power_max_w': 0.0,
+            'duration_s': wall_duration_s,
+            'num_samples': 0,
+        }, 'none'
 
     # ------------------------------------------------------------------
     # Energy computation
@@ -396,34 +448,63 @@ class CUDALayerTimer:
         self,
         power_monitor: 'PowerMonitor',
         all_samples: List[Tuple[float, float]],
-    ) -> Dict[str, Dict[str, float]]:
+        timing_stats: Dict[str, Dict[str, float]],
+        energy_per_inference_j: Optional[float],
+        measure_iters: int,
+    ) -> Dict[str, Dict]:
         """
-        Compute per-layer power/energy by slicing the continuous power
-        sample stream using recorded wall-clock timestamps.
+        Per-layer power/energy: NVML slice + hybrid rule + proportional fallback.
+
+        Fallback (proportional_overall): energy_per_layer_j =
+            energy_per_inference_j * (layer_mean_ms / sum_conv_mean_ms)
+        when NVML yields no usable energy for that layer.
         """
-        results: Dict[str, Dict[str, float]] = {}
+        total_ms = sum(v['mean'] for v in timing_stats.values())
+        budget = float(energy_per_inference_j or 0.0)
+
+        results: Dict[str, Dict] = {}
         for name, ts_list in self.layer_timestamps.items():
             layer_samples: List[Tuple[float, float]] = []
             for t_start, t_end in ts_list:
                 layer_samples.extend(
                     power_monitor.slice_samples(all_samples, t_start, t_end)
                 )
-            if layer_samples:
-                stats = power_monitor.compute_energy_trapezoidal(layer_samples)
-                num_iters = len(ts_list) if ts_list else 1
-                results[name] = {
-                    'power_mean_w': stats['avg_power_w'],
-                    'power_std_w': stats['power_std_w'],
-                    'energy_total_j': stats['energy_j'],
-                    'energy_per_layer_j': stats['energy_j'] / num_iters,
-                    'power_samples': stats['num_samples'],
-                }
-            else:
-                results[name] = {
-                    'power_mean_w': 0, 'power_std_w': 0,
-                    'energy_total_j': 0, 'energy_per_layer_j': 0,
-                    'power_samples': 0,
-                }
+
+            stats, attr = power_monitor.compute_layer_energy_hybrid(
+                layer_samples, ts_list)
+            nit = len(ts_list) if ts_list else measure_iters
+            nit = max(nit, 1)
+
+            epl = stats['energy_j'] / nit
+            pmw = float(stats['avg_power_w'])
+            pstd = float(stats['power_std_w'])
+            ps = int(stats['num_samples'])
+            etot = float(stats['energy_j'])
+
+            need_fallback = (
+                epl <= 0.0
+                and budget > 0.0
+                and total_ms > 0.0
+                and name in timing_stats
+            )
+            if need_fallback:
+                mean_ms = float(timing_stats[name]['mean'])
+                epl = budget * (mean_ms / total_ms)
+                dt_s = mean_ms / 1000.0
+                pmw = epl / dt_s if dt_s > 0 else 0.0
+                pstd = 0.0
+                etot = epl * nit
+                ps = 0
+                attr = 'proportional_overall'
+
+            results[name] = {
+                'power_mean_w': pmw,
+                'power_std_w': pstd,
+                'energy_total_j': etot,
+                'energy_per_layer_j': epl,
+                'power_samples': ps,
+                'energy_attribution': attr,
+            }
         return results
 
     def get_layer_info(self):
@@ -473,6 +554,8 @@ class UnifiedProfiler:
         self.timer: Optional[CUDALayerTimer] = None
         self.model = None
         self.use_cuda = torch.cuda.is_available()
+        # NVML poll interval (ms) while measuring per-layer power
+        self.layer_nvml_interval_ms: float = 0.1
 
     def _check_compatibility(self):
         if self.algorithm in ALGORITHM_COMPATIBILITY:
@@ -587,11 +670,13 @@ class UnifiedProfiler:
     # Layer measurement (v2: continuous power sampling + slicing)
     # ------------------------------------------------------------------
     def _measure_layers(
-        self, input_data: torch.Tensor
+        self,
+        input_data: torch.Tensor,
+        overall_stats: Dict[str, float],
     ) -> Tuple[Dict, Dict]:
         """
         Returns (timing_stats, power_stats) where power_stats contains
-        per-layer power/energy computed from continuous NVML sampling.
+        per-layer power/energy from NVML (hybrid + optional proportional fallback).
         """
         self.timer.reset()
 
@@ -603,7 +688,8 @@ class UnifiedProfiler:
 
         self.timer.reset()
 
-        self.power_monitor.start_continuous_sampling(interval_ms=0.5)
+        self.power_monitor.start_continuous_sampling(
+            interval_ms=self.layer_nvml_interval_ms)
 
         with torch.inference_mode():
             for _ in range(self.measure_iters):
@@ -614,8 +700,14 @@ class UnifiedProfiler:
         all_samples = self.power_monitor.stop_continuous_sampling()
 
         timing_stats = self.timer.get_statistics()
+        epi = overall_stats.get('energy_per_inference_j')
         power_stats = self.timer.get_power_statistics(
-            self.power_monitor, all_samples)
+            self.power_monitor,
+            all_samples,
+            timing_stats,
+            float(epi) if epi is not None else None,
+            self.measure_iters,
+        )
 
         return timing_stats, power_stats
 
@@ -707,7 +799,8 @@ class UnifiedProfiler:
 
             # --- layers (v2: timing + power) ---
             try:
-                layer_timing, layer_power = self._measure_layers(input_data)
+                layer_timing, layer_power = self._measure_layers(
+                    input_data, overall_stats)
                 layer_info = self.timer.get_layer_info()
 
                 if layer_timing:
@@ -747,6 +840,8 @@ class UnifiedProfiler:
                             'energy_per_layer_j': pwr.get(
                                 'energy_per_layer_j', 0),
                             'power_samples': pwr.get('power_samples', 0),
+                            'energy_attribution': pwr.get(
+                                'energy_attribution', 'none'),
                         })
             except Exception as e:
                 print(f"  Error during layer measurement: {e}")

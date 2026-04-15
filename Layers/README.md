@@ -86,7 +86,7 @@ python evaluate.py
 - Wall-clock timestamp markers in forward hooks
 - Post-hoc slicing of power samples per layer
 - Trapezoidal rule energy integration per layer
-- New CSV columns: `power_mean_w`, `power_std_w`, `energy_per_layer_j`, `power_samples`
+- New CSV columns: `power_mean_w`, `power_std_w`, `energy_per_layer_j`, `power_samples`, `energy_attribution` (`nvml_trapezoid` | `nvml_single_sample` | `proportional_overall`)
 
 ### Feature Engineering
 - **Layer-level**: `compute_flops`, `output_size`, `params`, `memory_bytes`, `compute_intensity`
